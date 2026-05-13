@@ -1,6 +1,14 @@
 import type { Wcmp2Record, TimeExtent } from '../types/wcmp2';
 import type { FormState } from '../hooks/useWcmp2Form';
 
+// Convert a datetime-local string (YYYY-MM-DDTHH:MM or YYYY-MM-DDTHH:MM:SS)
+// to a full ISO 8601 UTC timestamp (YYYY-MM-DDThh:mm:ssZ).
+function toIsoZ(s: string): string {
+  if (!s) return new Date().toISOString().slice(0, 19) + 'Z';
+  const withSecs = s.length === 16 ? `${s}:00` : s.slice(0, 19);
+  return `${withSecs}Z`;
+}
+
 export function buildRecord(form: FormState): Wcmp2Record {
   const properties: Wcmp2Record['properties'] = {
     type: form.resourceType,
@@ -8,11 +16,11 @@ export function buildRecord(form: FormState): Wcmp2Record {
     description: form.description,
     themes: form.themes,
     contacts: form.contacts,
-    created: form.created || new Date().toISOString(),
+    created: toIsoZ(form.created),
     'wmo:dataPolicy': form.dataPolicy,
   };
 
-  if (form.updated) properties.updated = form.updated;
+  if (form.updated) properties.updated = toIsoZ(form.updated);
   if (form.keywords.length > 0) properties.keywords = form.keywords;
   if (form.version) properties.version = form.version;
   if (form.externalIds.length > 0) properties.externalIds = form.externalIds;

@@ -65,7 +65,7 @@ export default function App() {
   };
 
   const handleUpdatePromptYes = () => {
-    update('updated', new Date().toISOString().slice(0, 10));
+    update('updated', new Date().toISOString().slice(0, 19));
     setShowUpdatePrompt(false);
   };
 

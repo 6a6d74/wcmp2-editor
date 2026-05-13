@@ -68,7 +68,7 @@ const defaultForm: FormState = {
   externalIds: [],
   rights: '',
   status: {},
-  created: new Date().toISOString().split('T')[0],
+  created: new Date().toISOString().slice(0, 19),
   updated: '',
 };
 

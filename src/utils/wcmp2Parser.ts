@@ -9,10 +9,15 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v : '';
 }
 
-// Normalise ISO timestamps or date strings to YYYY-MM-DD for date inputs.
-function toDateStr(v: unknown): string {
+// Normalise ISO timestamps or date-only strings to YYYY-MM-DDTHH:MM:SS
+// for datetime-local inputs (no trailing Z or offset).
+function toDatetimeLocal(v: unknown): string {
   const s = str(v);
-  return s ? s.slice(0, 10) : '';
+  if (!s) return '';
+  // Strip timezone suffix (Z or ±HH:MM)
+  const bare = s.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').slice(0, 19);
+  // If only a date was supplied, add midnight time
+  return bare.length === 10 ? `${bare}T00:00:00` : bare;
 }
 
 function arr<T>(v: unknown): T[] {
@@ -147,8 +152,8 @@ export function validateAndParse(raw: unknown): ParseResult {
     externalIds: arr(props['externalIds']),
     rights: str(props['rights']),
     status: (props['status'] as FormState['status']) ?? {},
-    created: toDateStr(props['created']) || new Date().toISOString().slice(0, 10),
-    updated: toDateStr(props['updated']),
+    created: toDatetimeLocal(props['created']) || new Date().toISOString().slice(0, 19),
+    updated: toDatetimeLocal(props['updated']),
   };
 
   return { form, errors: [] };
