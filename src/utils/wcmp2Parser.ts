@@ -105,6 +105,8 @@ export function validateAndParse(raw: unknown): ParseResult {
   let timeBegin = '';
   let timeEnd = '';
 
+  let temporalResolution = '';
+
   if (time && typeof time === 'object') {
     if (typeof time['date'] === 'string') {
       timeType = 'date';
@@ -118,16 +120,18 @@ export function validateAndParse(raw: unknown): ParseResult {
       timeBegin = iv[0] === '..' ? '' : str(iv[0]);
       timeEnd = iv[1] === '..' ? '' : str(iv[1]);
     }
+    // resolution lives directly on the time object
+    temporalResolution = str(time['resolution']);
   }
 
-  const additionalExtents = rec['additionalExtents'] as
-    | Record<string, unknown>
-    | undefined;
-  const temporalResolution = str(
-    (additionalExtents?.['temporal'] as Record<string, unknown> | undefined)?.[
-      'resolution'
-    ],
-  );
+  const additionalExtentsRaw = rec['additionalExtents'];
+  const hasAdditionalExtents =
+    !!additionalExtentsRaw &&
+    typeof additionalExtentsRaw === 'object' &&
+    !Array.isArray(additionalExtentsRaw);
+  const additionalExtentsJson = hasAdditionalExtents
+    ? JSON.stringify(additionalExtentsRaw, null, 2)
+    : '';
 
   const form: FormState = {
     id,
@@ -154,6 +158,8 @@ export function validateAndParse(raw: unknown): ParseResult {
     status: (props['status'] as FormState['status']) ?? {},
     created: toDatetimeLocal(props['created']) || new Date().toISOString().slice(0, 19),
     updated: toDatetimeLocal(props['updated']),
+    includeAdditionalExtents: hasAdditionalExtents,
+    additionalExtentsJson,
   };
 
   return { form, errors: [] };

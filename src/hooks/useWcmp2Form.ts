@@ -43,6 +43,10 @@ export interface FormState {
   status: Status;
   created: string;
   updated: string;
+
+  // Additional extents (raw JSON, optional)
+  includeAdditionalExtents: boolean;
+  additionalExtentsJson: string;
 }
 
 const defaultForm: FormState = {
@@ -70,6 +74,8 @@ const defaultForm: FormState = {
   status: {},
   created: new Date().toISOString().slice(0, 19),
   updated: '',
+  includeAdditionalExtents: false,
+  additionalExtentsJson: '',
 };
 
 export function useWcmp2Form() {

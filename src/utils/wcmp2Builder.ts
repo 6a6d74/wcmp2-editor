@@ -35,6 +35,10 @@ export function buildRecord(form: FormState): Wcmp2Record {
   } else if (form.timeType === 'interval' && (form.timeBegin || form.timeEnd)) {
     time = { interval: [form.timeBegin || '..', form.timeEnd || '..'] };
   }
+  // resolution is a direct property of the time object
+  if (time && form.temporalResolution) {
+    (time as Record<string, unknown>)['resolution'] = form.temporalResolution;
+  }
 
   const record: Wcmp2Record = {
     id: form.id,
@@ -46,13 +50,12 @@ export function buildRecord(form: FormState): Wcmp2Record {
     links: form.links,
   };
 
-  if (form.temporalResolution && form.timeType === 'interval' && (form.timeBegin || form.timeEnd)) {
-    record.additionalExtents = {
-      temporal: {
-        interval: [[form.timeBegin || '..', form.timeEnd || '..']],
-        resolution: form.temporalResolution,
-      },
-    };
+  if (form.includeAdditionalExtents && form.additionalExtentsJson.trim()) {
+    try {
+      record.additionalExtents = JSON.parse(form.additionalExtentsJson);
+    } catch {
+      // invalid JSON — omit rather than corrupt the record
+    }
   }
 
   return record;
