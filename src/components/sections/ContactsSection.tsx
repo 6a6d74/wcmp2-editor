@@ -3,6 +3,7 @@ import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { Contact } from '../../types/wcmp2';
 import { CONTACT_ROLES } from '../../utils/vocabularies';
+import { CountryPicker } from '../CountryPicker';
 import { SectionWrapper } from './SectionWrapper';
 
 interface Props {
@@ -117,7 +118,7 @@ function ContactCard({
                 onChange={e =>
                   up('phones', [{ value: e.target.value, roles: ['voice'] }])
                 }
-                placeholder="+1 555 000 0000"
+                placeholder="+44 1632 960000"
                 className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -126,18 +127,14 @@ function ContactCard({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-600 mb-1 block">
-                Country code{' '}
+                Country{' '}
                 <span className="font-normal text-gray-400">(ISO 3166-1 alpha-3)</span>
               </label>
-              <input
-                type="text"
+              <CountryPicker
                 value={country}
-                onChange={e =>
-                  up('addresses', [{ ...contact.addresses?.[0], country: e.target.value.toUpperCase() }])
+                onChange={val =>
+                  up('addresses', [{ ...contact.addresses?.[0], country: val }])
                 }
-                placeholder="e.g. CAN"
-                maxLength={3}
-                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase"
               />
             </div>
             <div>
