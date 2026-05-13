@@ -106,7 +106,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       <div
         ref={containerRef}
         className="w-full rounded-lg border border-gray-300 overflow-hidden"
-        style={{ height: 360 }}
+        style={{ height: 360, isolation: 'isolate' }}
       />
       {geometry ? (
         <div className="flex items-center justify-between">
