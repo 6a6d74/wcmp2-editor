@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback, useRef } from 'react';
 import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { KpiPanel } from './components/kpi/KpiPanel';
@@ -29,9 +29,20 @@ export default function App() {
   const [showValidation, setShowValidation] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showGitHub, setShowGitHub] = useState(false);
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
+  const awaitingFirstEdit = useRef(false);
 
   const record = useMemo(() => buildRecord(form), [form]);
   const kpi = useMemo(() => scoreRecord(form), [form]);
+
+  // Intercepts the first user edit after an import and asks about the updated timestamp.
+  const handleUpdate = useCallback(<K extends keyof FormState>(key: K, value: FormState[K]) => {
+    update(key, value);
+    if (awaitingFirstEdit.current && key !== 'updated') {
+      awaitingFirstEdit.current = false;
+      setShowUpdatePrompt(true);
+    }
+  }, [update]);
 
   const handleValidate = async () => {
     setShowValidation(true);
@@ -43,12 +54,23 @@ export default function App() {
   const handleReset = () => {
     if (window.confirm('Reset all fields? This cannot be undone.')) {
       reset();
+      awaitingFirstEdit.current = false;
     }
   };
 
   const handleImport = (importedForm: FormState) => {
-    load(importedForm);
+    load({ ...importedForm, updated: new Date().toISOString() });
     setShowImport(false);
+    awaitingFirstEdit.current = true;
+  };
+
+  const handleUpdatePromptYes = () => {
+    update('updated', new Date().toISOString());
+    setShowUpdatePrompt(false);
+  };
+
+  const handleUpdatePromptNo = () => {
+    setShowUpdatePrompt(false);
   };
 
   return (
@@ -68,15 +90,15 @@ export default function App() {
         <div className="max-w-3xl mx-auto px-6 py-6 space-y-5">
           <KpiPanel kpi={kpi} />
 
-          <IdentitySection form={form} update={update} />
-          <PropertiesSection form={form} update={update} resourceTypes={vocab.resourceTypes} />
-          <ThemesSection form={form} update={update} disciplines={vocab.disciplines} />
-          <GeospatialSection form={form} update={update} />
-          <TemporalSection form={form} update={update} />
-          <ContactsSection form={form} update={update} contactRoles={vocab.contactRoles} />
-          <DataPolicySection form={form} update={update} />
-          <LinksSection form={form} update={update} />
-          <OptionalSection form={form} update={update} />
+          <IdentitySection form={form} update={handleUpdate} />
+          <PropertiesSection form={form} update={handleUpdate} resourceTypes={vocab.resourceTypes} />
+          <ThemesSection form={form} update={handleUpdate} disciplines={vocab.disciplines} />
+          <GeospatialSection form={form} update={handleUpdate} />
+          <TemporalSection form={form} update={handleUpdate} />
+          <ContactsSection form={form} update={handleUpdate} contactRoles={vocab.contactRoles} />
+          <DataPolicySection form={form} update={handleUpdate} />
+          <LinksSection form={form} update={handleUpdate} />
+          <OptionalSection form={form} update={handleUpdate} />
           <JsonPreviewSection record={record} />
 
           <div className="pb-10 text-center text-xs text-gray-400">
@@ -116,6 +138,32 @@ export default function App() {
           form={form}
           onClose={() => setShowGitHub(false)}
         />
+      )}
+
+      {showUpdatePrompt && (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <h2 className="text-base font-semibold text-gray-900">Update metadata timestamp?</h2>
+            <p className="text-sm text-gray-600">
+              You've started editing this imported record. Do you want to update the{' '}
+              <strong>updated</strong> date-time to now?
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={handleUpdatePromptNo}
+                className="px-4 py-2 rounded text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                No, keep existing
+              </button>
+              <button
+                onClick={handleUpdatePromptYes}
+                className="px-4 py-2 rounded text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors"
+              >
+                Yes, update to now
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
