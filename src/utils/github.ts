@@ -164,7 +164,9 @@ export function makeBranchName(localId: string, title: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 48);
-  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  return `wcmp2-editor/${slug}-${date}`;
+    .slice(0, 40);
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const ts = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}`;
+  return `wcmp2-editor/${slug}-${ts}`;
 }

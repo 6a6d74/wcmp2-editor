@@ -129,6 +129,10 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
   const [filename, setFilename] = useState('');
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderInput, setNewFolderInput] = useState('');
+  const [checkingFile, setCheckingFile] = useState(false);
+  const [fileExistsPrompt, setFileExistsPrompt] = useState(false);
+  const [existingFileSha, setExistingFileSha] = useState<string | undefined>(undefined);
+  const [isUpdate, setIsUpdate] = useState(false);
 
   // Review / push state
   const [prTitle, setPrTitle] = useState('');
@@ -262,12 +266,37 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
 
   const breadcrumbs = currentPath ? currentPath.split('/') : [];
 
-  const handleConfirmLocation = () => {
-    setPrTitle(`Add WCMP2 metadata record: ${record.properties.title}`);
-    setPrBody(buildPrBody(record, false));
+  const proceedToReview = (update: boolean) => {
+    setIsUpdate(update);
+    setPrTitle(update
+      ? `Update WCMP2 metadata record: ${record.properties.title}`
+      : `Add WCMP2 metadata record: ${record.properties.title}`);
+    setPrBody(buildPrBody(record, update));
     setPushError('');
     setPrResult(null);
     setStep('review');
+  };
+
+  const handleConfirmLocation = async () => {
+    if (!selectedRepo || !filename) return;
+    setFileExistsPrompt(false);
+    setCheckingFile(true);
+    try {
+      const filePath = currentPath ? `${currentPath}/${filename}` : filename;
+      const sha = await getFileSha(token, selectedRepo.full_name, filePath);
+      if (sha) {
+        setExistingFileSha(sha);
+        setFileExistsPrompt(true);
+      } else {
+        setExistingFileSha(undefined);
+        proceedToReview(false);
+      }
+    } catch {
+      setExistingFileSha(undefined);
+      proceedToReview(false);
+    } finally {
+      setCheckingFile(false);
+    }
   };
 
   // ── Push ───────────────────────────────────────────────────────────────────
@@ -279,17 +308,7 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
     try {
       const filePath = currentPath ? `${currentPath}/${filename}` : filename;
       const branch = makeBranchName(form.localId, form.title);
-
-      const [existingSha, baseSha] = await Promise.all([
-        getFileSha(token, selectedRepo.full_name, filePath),
-        getDefaultBranchSha(token, selectedRepo.full_name, selectedRepo.default_branch),
-      ]);
-
-      const isUpdate = !!existingSha;
-      const finalTitle = isUpdate
-        ? `Update WCMP2 metadata record: ${record.properties.title}`
-        : prTitle;
-      const finalBody = isUpdate ? buildPrBody(record, true) : prBody;
+      const baseSha = await getDefaultBranchSha(token, selectedRepo.full_name, selectedRepo.default_branch);
 
       await createBranch(token, selectedRepo.full_name, branch, baseSha);
       await putFile(
@@ -298,12 +317,12 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
         isUpdate
           ? `Update WCMP2 metadata record: ${record.id}`
           : `Add WCMP2 metadata record: ${record.id}`,
-        branch, existingSha,
+        branch, existingFileSha,
       );
 
       const pr = await createPR(
         token, selectedRepo.full_name,
-        finalTitle, finalBody,
+        prTitle, prBody,
         branch, selectedRepo.default_branch,
       );
       setPrResult({ url: pr.html_url, number: pr.number });
@@ -573,7 +592,7 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
                 <input
                   type="text"
                   value={filename}
-                  onChange={e => setFilename(e.target.value)}
+                  onChange={e => { setFilename(e.target.value); setFileExistsPrompt(false); }}
                   className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-400 mt-1">
@@ -583,6 +602,32 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
                   </code>
                 </p>
               </div>
+
+              {fileExistsPrompt && (
+                <div className="rounded-lg bg-amber-50 border border-amber-300 px-3 py-3 space-y-2">
+                  <p className="text-sm font-medium text-amber-800">File already exists</p>
+                  <p className="text-xs text-amber-700">
+                    <code className="bg-amber-100 px-1 rounded">
+                      {currentPath ? `${currentPath}/` : ''}{filename}
+                    </code>{' '}
+                    already exists in this repository. Do you want to update it, or choose a different name?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setFileExistsPrompt(false); proceedToReview(true); }}
+                      className="px-3 py-1.5 rounded bg-amber-600 hover:bg-amber-500 text-white text-sm font-medium"
+                    >
+                      Update existing file
+                    </button>
+                    <button
+                      onClick={() => setFileExistsPrompt(false)}
+                      className="px-3 py-1.5 rounded border border-gray-300 text-gray-700 text-sm hover:bg-gray-50"
+                    >
+                      Choose a different name
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -678,9 +723,10 @@ export function GitHubPushDialog({ record, form, onClose }: Props) {
             {step === 'directory' && (
               <button
                 onClick={handleConfirmLocation}
-                disabled={!filename.trim()}
-                className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium transition-colors"
+                disabled={!filename.trim() || checkingFile}
+                className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium transition-colors"
               >
+                {checkingFile && <Loader size={13} className="animate-spin" />}
                 Use this location →
               </button>
             )}
