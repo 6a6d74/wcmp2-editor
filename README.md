@@ -10,9 +10,10 @@ A single-page web application for creating, editing, and publishing metadata rec
 - **Controlled vocabulary pickers** sourced live from the [WMO Codes Registry](https://codes.wmo.int) (Earth System Disciplines, resource types, contact roles, link relations), with static fallbacks when offline
 - **Country picker** — searchable autocomplete for ISO 3166-1 alpha-3 country codes in contact addresses; filter by country name or code prefix
 - **Interactive map** for drawing the geospatial extent of a dataset as a bounding box or polygon, powered by Leaflet
+- **Temporal extent** — supports date, timestamp, and interval types; ISO 8601 duration resolution (`time.resolution`); optional `additionalExtents` block with a live JSON editor and syntax validation
 - **Live KPI scoring** — the seven metadata quality Key Performance Indicators from [pywcmp](https://github.com/wmo-im/pywcmp) are evaluated in real-time as you type, with a letter grade (A–F) and per-KPI hints
 - **API validation** — submit the record to the [Canadian WIS2 Global Discovery Catalogue](https://wis2-gdc.weather.gc.ca) Essential Test Suite for authoritative conformance checking
-- **Import existing records** — load a record from a local `.json` file (drag-and-drop or browse) or fetch directly from a URL; the file is validated as a WCMP2 record before populating the form
+- **Import existing records** — load a record from a local `.json` file (drag-and-drop or browse) or fetch directly from a URL; the file is validated as a WCMP2 record before populating the form. On the first edit after importing, the editor asks whether to update the `updated` timestamp
 - **JSON export** — download the finished record as a standards-compliant GeoJSON Feature file
 - **Push to GitHub** — authenticate with a Personal Access Token, choose a repository and directory, and open a pull request directly from the editor (see [GitHub integration](#github-integration) below)
 
@@ -29,8 +30,10 @@ WCMP2 records are [GeoJSON Features](https://datatracker.ietf.org/doc/html/rfc79
 | `properties.contacts` | At least one contact |
 | `properties.wmo:dataPolicy` | `core` (open) or `recommended` (conditional access) |
 | `geometry` | Spatial extent in WGS84, or `null` |
-| `time` | Temporal extent, or `null` |
+| `time` | Temporal extent (date / timestamp / interval), or `null`. May include `resolution` (ISO 8601 duration) |
 | `links` | At least one access or information link |
+
+Timestamps for `properties.created` and `properties.updated` are stored and exported as full ISO 8601 UTC timestamps (`YYYY-MM-DDThh:mm:ssZ`).
 
 ## KPI Scoring
 
@@ -60,19 +63,27 @@ The **Push to GitHub** button walks through a four-step workflow:
 
 2. **Repository** — select from a filtered list of your repositories, or type `owner/repo` directly. Write access is verified before proceeding.
 
-3. **Location** — browse the repository's directory tree, navigate into subdirectories, create new folders, and confirm the filename (pre-filled from the record's local ID).
+3. **Location** — browse the repository's directory tree, navigate into subdirectories, create new folders, and confirm the filename (pre-filled from the record's local ID). If a file already exists at the chosen path, the editor prompts you to either update it or choose a different filename.
 
 4. **Review & push** — edit the PR title and Markdown description (pre-populated with a structured summary of the record), then click **Create pull request**.
 
-The editor creates a timestamped branch (`wcmp2-editor/{record-id}-{date}`), commits the record JSON, and opens a pull request against the repository's default branch. If a file already exists at the chosen path the commit and PR title say "Update" rather than "Add". The PR description includes a merge checklist that prompts for WCMP2 ETS validation and data-owner approval before merging.
+The editor creates a uniquely timestamped branch (`wcmp2-editor/{record-id}-{YYYYMMDDHHmmss}`), commits the record JSON, and opens a pull request against the repository's default branch. The PR title says "Update" rather than "Add" when overwriting an existing file. The PR description includes a merge checklist that prompts for WCMP2 ETS validation and data-owner approval before merging.
 
 > **Why a pull request?** In operational WIS2 deployments, merging a metadata record to the main branch triggers automated validation pipelines and requires approval from designated reviewers. The PR model ensures records are never published without passing these checks.
+
+## Importing Existing Records
+
+Use the **Import** button to load an existing WCMP2 record from a local `.json` file or a URL. The editor validates the record structure before importing and reports any conformance errors.
+
+On import:
+- All fields are populated from the record, including `created` and `updated` timestamps (preserved exactly as-is)
+- On the **first edit** made after importing, a dialog asks whether to advance the `updated` timestamp to the current date and time
 
 ## Tech Stack
 
 | Component | Library / Tool |
 |---|---|
-| Framework | [React 18](https://react.dev) + [Vite 5](https://vite.dev) |
+| Framework | [React 18](https://react.dev) + [Vite 8](https://vite.dev) |
 | Language | TypeScript |
 | Styling | [Tailwind CSS v3](https://tailwindcss.com) |
 | Map | [Leaflet](https://leafletjs.com) + [react-leaflet](https://react-leaflet.js.org) + [leaflet-draw](https://github.com/Leaflet/Leaflet.draw) |
@@ -150,7 +161,7 @@ src/
 ├── components/
 │   ├── kpi/               # Live KPI scoring panel
 │   ├── layout/            # Header and sidebar
-│   ├── map/               # Leaflet map widget
+│   ├── map/               # Leaflet map widget + draw toolbar icon overrides
 │   ├── sections/          # One component per form section
 │   └── validation/        # GDC API results modal
 │   CountryPicker.tsx      # ISO 3166-1 alpha-3 autocomplete
