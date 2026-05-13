@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
+import './leaflet-draw-icons.css';
 
 // Leaflet-draw needs to be imported after leaflet
 import 'leaflet-draw';

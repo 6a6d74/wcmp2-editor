@@ -1,0 +1,57 @@
+/*
+ * Override leaflet-draw toolbar icons with inline SVG data URLs.
+ *
+ * The shipped spritesheet fails as a CSS background-image because:
+ * - The SVG uses <use xlink:href> which is blocked in background-image context
+ * - Vite inlines the PNG fallback as an empty data URL in dev mode
+ */
+
+/* Reset the broken spritesheet from leaflet-draw's own CSS */
+.leaflet-draw-toolbar a,
+.leaflet-touch .leaflet-draw-toolbar a {
+  background-image: none !important;
+  background-position: center center !important;
+  background-size: 18px 18px !important;
+}
+
+/* ── Draw: polygon ─────────────────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-draw-polygon,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-polygon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolygon points='12,2 22,9 18,21 6,21 2,9' fill='none' stroke='%23464646' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Draw: rectangle ───────────────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-draw-rectangle,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-rectangle {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='3' y='5' width='18' height='14' fill='none' stroke='%23464646' stroke-width='2' rx='1'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Draw: marker ──────────────────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-draw-marker,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-draw-marker {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23464646' d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Edit: edit (enabled) ──────────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-edit-edit,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-edit-edit {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23464646' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'/%3E%3Cpath fill='none' stroke='%23464646' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Edit: edit (disabled) ─────────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-edit-edit.leaflet-disabled,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-edit-edit.leaflet-disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23bbbbbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7'/%3E%3Cpath fill='none' stroke='%23bbbbbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Edit: remove (enabled) ────────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-edit-remove,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-edit-remove {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23464646' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3C/svg%3E") !important;
+}
+
+/* ── Edit: remove (disabled) ───────────────────────────────────────────────── */
+.leaflet-draw-toolbar .leaflet-draw-edit-remove.leaflet-disabled,
+.leaflet-touch .leaflet-draw-toolbar .leaflet-draw-edit-remove.leaflet-disabled {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23bbbbbb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2'/%3E%3C/svg%3E") !important;
+}
