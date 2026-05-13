@@ -9,6 +9,12 @@ function str(v: unknown): string {
   return typeof v === 'string' ? v : '';
 }
 
+// Normalise ISO timestamps or date strings to YYYY-MM-DD for date inputs.
+function toDateStr(v: unknown): string {
+  const s = str(v);
+  return s ? s.slice(0, 10) : '';
+}
+
 function arr<T>(v: unknown): T[] {
   return Array.isArray(v) ? (v as T[]) : [];
 }
@@ -141,8 +147,8 @@ export function validateAndParse(raw: unknown): ParseResult {
     externalIds: arr(props['externalIds']),
     rights: str(props['rights']),
     status: (props['status'] as FormState['status']) ?? {},
-    created: str(props['created']) || new Date().toISOString().split('T')[0],
-    updated: str(props['updated']),
+    created: toDateStr(props['created']) || new Date().toISOString().slice(0, 10),
+    updated: toDateStr(props['updated']),
   };
 
   return { form, errors: [] };

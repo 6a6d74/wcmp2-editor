@@ -59,13 +59,13 @@ export default function App() {
   };
 
   const handleImport = (importedForm: FormState) => {
-    load({ ...importedForm, updated: new Date().toISOString() });
+    load(importedForm);
     setShowImport(false);
     awaitingFirstEdit.current = true;
   };
 
   const handleUpdatePromptYes = () => {
-    update('updated', new Date().toISOString());
+    update('updated', new Date().toISOString().slice(0, 10));
     setShowUpdatePrompt(false);
   };
 
