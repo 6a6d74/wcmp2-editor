@@ -59,6 +59,48 @@ The overall percentage maps to a letter grade: **A** ≥80 · **B** ≥65 · **C
 
 ## Getting Started
 
+### Docker (recommended)
+
+**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) installed and running.
+
+```bash
+git clone https://github.com/6a6d74/wcmp2-editor.git
+cd wcmp2-editor
+```
+
+**Build the image:**
+
+```bash
+docker build -t wcmp2-editor .
+```
+
+**Run the container:**
+
+```bash
+docker run -d --name wcmp2-editor -p 8080:80 wcmp2-editor
+```
+
+Open `http://localhost:8080` in your browser.
+
+The `-d` flag runs the container in the background. Change `8080` to any available port on your machine if needed.
+
+**Stop and remove the container:**
+
+```bash
+docker stop wcmp2-editor
+docker rm wcmp2-editor
+```
+
+**Remove the image** (optional, frees ~21 MB):
+
+```bash
+docker rmi wcmp2-editor
+```
+
+---
+
+### Local development (Node.js)
+
 **Prerequisites:** Node.js 18+ and npm.
 
 ```bash
@@ -68,7 +110,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Open `http://localhost:5173` in your browser. The dev server supports hot module replacement — changes to source files are reflected instantly without a page reload.
 
 To build a static bundle for deployment:
 
