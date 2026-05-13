@@ -4,6 +4,7 @@ import { Sidebar } from './components/layout/Sidebar';
 import { KpiPanel } from './components/kpi/KpiPanel';
 import { ValidationPanel } from './components/validation/ValidationPanel';
 import { ImportDialog } from './components/ImportDialog';
+import { GitHubPushDialog } from './components/GitHubPushDialog';
 import { IdentitySection } from './components/sections/IdentitySection';
 import { PropertiesSection } from './components/sections/PropertiesSection';
 import { ThemesSection } from './components/sections/ThemesSection';
@@ -27,6 +28,7 @@ export default function App() {
   const { result: validationResult, validate, clear: clearValidation } = useValidation();
   const [showValidation, setShowValidation] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showGitHub, setShowGitHub] = useState(false);
 
   const record = useMemo(() => buildRecord(form), [form]);
   const kpi = useMemo(() => scoreRecord(form), [form]);
@@ -56,6 +58,7 @@ export default function App() {
         onDownload={handleDownload}
         onReset={handleReset}
         onImport={() => setShowImport(true)}
+        onPushToGitHub={() => setShowGitHub(true)}
         validating={validationResult.loading}
       />
 
@@ -104,6 +107,14 @@ export default function App() {
         <ImportDialog
           onImport={handleImport}
           onClose={() => setShowImport(false)}
+        />
+      )}
+
+      {showGitHub && (
+        <GitHubPushDialog
+          record={record}
+          form={form}
+          onClose={() => setShowGitHub(false)}
         />
       )}
     </div>
