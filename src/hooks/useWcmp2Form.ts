@@ -92,5 +92,7 @@ export function useWcmp2Form() {
 
   const reset = useCallback(() => setForm(defaultForm), []);
 
-  return { form, update, reset };
+  const load = useCallback((next: FormState) => setForm(next), []);
+
+  return { form, update, reset, load };
 }

@@ -1,13 +1,14 @@
-import { Download, ShieldCheck, RotateCcw } from 'lucide-react';
+import { Download, ShieldCheck, RotateCcw, FolderOpen } from 'lucide-react';
 
 interface HeaderProps {
   onValidate: () => void;
   onDownload: () => void;
   onReset: () => void;
+  onImport: () => void;
   validating: boolean;
 }
 
-export function Header({ onValidate, onDownload, onReset, validating }: HeaderProps) {
+export function Header({ onValidate, onDownload, onReset, onImport, validating }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-blue-900 text-white shadow-lg h-14 flex items-center px-4 gap-3">
       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -17,6 +18,14 @@ export function Header({ onValidate, onDownload, onReset, validating }: HeaderPr
         </span>
       </div>
       <div className="flex items-center gap-2">
+        <button
+          onClick={onImport}
+          title="Import existing record"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-blue-800 hover:bg-blue-700 text-sm font-medium transition-colors"
+        >
+          <FolderOpen size={14} />
+          <span className="hidden sm:inline">Import</span>
+        </button>
         <button
           onClick={onReset}
           title="Reset form"

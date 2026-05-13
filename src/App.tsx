@@ -3,6 +3,7 @@ import { Header } from './components/layout/Header';
 import { Sidebar } from './components/layout/Sidebar';
 import { KpiPanel } from './components/kpi/KpiPanel';
 import { ValidationPanel } from './components/validation/ValidationPanel';
+import { ImportDialog } from './components/ImportDialog';
 import { IdentitySection } from './components/sections/IdentitySection';
 import { PropertiesSection } from './components/sections/PropertiesSection';
 import { ThemesSection } from './components/sections/ThemesSection';
@@ -18,12 +19,14 @@ import { useVocabulary } from './hooks/useVocabulary';
 import { useValidation } from './hooks/useValidation';
 import { scoreRecord } from './utils/kpiScorer';
 import { buildRecord, downloadRecord } from './utils/wcmp2Builder';
+import type { FormState } from './hooks/useWcmp2Form';
 
 export default function App() {
-  const { form, update, reset } = useWcmp2Form();
+  const { form, update, reset, load } = useWcmp2Form();
   const vocab = useVocabulary();
   const { result: validationResult, validate, clear: clearValidation } = useValidation();
   const [showValidation, setShowValidation] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const record = useMemo(() => buildRecord(form), [form]);
   const kpi = useMemo(() => scoreRecord(form), [form]);
@@ -41,12 +44,18 @@ export default function App() {
     }
   };
 
+  const handleImport = (importedForm: FormState) => {
+    load(importedForm);
+    setShowImport(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <Header
         onValidate={handleValidate}
         onDownload={handleDownload}
         onReset={handleReset}
+        onImport={() => setShowImport(true)}
         validating={validationResult.loading}
       />
 
@@ -88,6 +97,13 @@ export default function App() {
             setShowValidation(false);
             clearValidation();
           }}
+        />
+      )}
+
+      {showImport && (
+        <ImportDialog
+          onImport={handleImport}
+          onClose={() => setShowImport(false)}
         />
       )}
     </div>
