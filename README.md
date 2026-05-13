@@ -180,6 +180,6 @@ src/
 
 ## License
 
-Copyright 2025 Jeremy Tandy.
+Copyright 2026 Jeremy Tandy.
 
 Licensed under the [Apache License, Version 2.0](LICENSE).
