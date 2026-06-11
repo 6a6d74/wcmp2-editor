@@ -16,6 +16,9 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const drawnLayerRef = useRef<L.FeatureGroup | null>(null);
+  // Keep onChange in a ref so stale-closure event handlers always call the latest version
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -35,10 +38,11 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     map.addLayer(drawnItems);
     drawnLayerRef.current = drawnItems;
 
+    // rectangle: false — replaced by the custom click-click bbox tool below
     const drawControl = new (L.Control as unknown as { Draw: new (opts: unknown) => L.Control }).Draw({
       position: 'topright',
       draw: {
-        rectangle: { shapeOptions: { color: '#2563eb', weight: 2 } },
+        rectangle: false,
         polygon: { shapeOptions: { color: '#2563eb', weight: 2 } },
         polyline: false,
         circle: false,
@@ -52,6 +56,82 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     });
     map.addControl(drawControl);
 
+    // --- Click-click bounding box tool ---
+    let bboxActive = false;
+    let firstPoint: L.LatLng | null = null;
+    let preview: L.Rectangle | null = null;
+    let bboxBtnEl: HTMLElement | null = null;
+
+    function activateBbox() {
+      bboxActive = true;
+      firstPoint = null;
+      map.getContainer().style.cursor = 'crosshair';
+      bboxBtnEl?.classList.add('bbox-active');
+    }
+
+    function deactivateBbox() {
+      bboxActive = false;
+      firstPoint = null;
+      if (preview) { map.removeLayer(preview); preview = null; }
+      map.getContainer().style.cursor = '';
+      bboxBtnEl?.classList.remove('bbox-active');
+    }
+
+    const BBoxControl = L.Control.extend({
+      onAdd() {
+        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+        const a = L.DomUtil.create('a', '', container) as HTMLAnchorElement;
+        a.href = '#';
+        a.title = 'Draw bounding box (click to set first corner, click again to complete)';
+        a.style.cssText = 'display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:15px;';
+        a.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="3" cy="3" r="1.5" fill="currentColor" stroke="none"/><circle cx="21" cy="21" r="1.5" fill="currentColor" stroke="none"/></svg>`;
+        bboxBtnEl = a;
+
+        L.DomEvent.on(a, 'click', L.DomEvent.stop);
+        L.DomEvent.on(a, 'click', () => {
+          if (bboxActive) deactivateBbox();
+          else activateBbox();
+        });
+
+        return container;
+      },
+    });
+
+    map.addControl(new BBoxControl({ position: 'topright' }));
+
+    map.on('click', (e: L.LeafletMouseEvent) => {
+      if (!bboxActive) return;
+      if (!firstPoint) {
+        firstPoint = e.latlng;
+        preview = L.rectangle(L.latLngBounds(firstPoint, firstPoint), {
+          color: '#2563eb',
+          weight: 2,
+          fillOpacity: 0.1,
+          dashArray: '6 4',
+        }).addTo(map);
+      } else {
+        const bounds = L.latLngBounds(firstPoint, e.latlng);
+        if (preview) { map.removeLayer(preview); preview = null; }
+        drawnItems.clearLayers();
+        const rect = L.rectangle(bounds, { color: '#2563eb', weight: 2 });
+        drawnItems.addLayer(rect);
+        onChangeRef.current(rect.toGeoJSON().geometry);
+        deactivateBbox();
+      }
+    });
+
+    map.on('mousemove', (e: L.LeafletMouseEvent) => {
+      if (!bboxActive || !firstPoint || !preview) return;
+      preview.setBounds(L.latLngBounds(firstPoint, e.latlng));
+    });
+
+    // Escape cancels an in-progress bbox draw
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && bboxActive) deactivateBbox();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    // ------------------------------------
+
     map.on(L.Draw.Event.CREATED, (e: unknown) => {
       const event = e as { layer: L.Layer };
       drawnItems.clearLayers();
@@ -59,11 +139,11 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       const geojson = (event.layer as L.GeoJSON).toGeoJSON() as unknown as {
         geometry: GeoJSON.Geometry;
       };
-      onChange(geojson.geometry);
+      onChangeRef.current(geojson.geometry);
     });
 
     map.on(L.Draw.Event.DELETED, () => {
-      if (drawnItems.getLayers().length === 0) onChange(null);
+      if (drawnItems.getLayers().length === 0) onChangeRef.current(null);
     });
 
     map.on(L.Draw.Event.EDITED, () => {
@@ -72,11 +152,12 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
         const geojson = (layers[0] as L.GeoJSON).toGeoJSON() as unknown as {
           geometry: GeoJSON.Geometry;
         };
-        onChange(geojson.geometry);
+        onChangeRef.current(geojson.geometry);
       }
     });
 
     return () => {
+      document.removeEventListener('keydown', onKeyDown);
       map.remove();
       mapRef.current = null;
     };
