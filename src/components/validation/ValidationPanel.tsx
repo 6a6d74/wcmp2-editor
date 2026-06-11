@@ -1,4 +1,4 @@
-import { X, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { ValidationResult } from '../../hooks/useValidation';
 
 interface Props {
@@ -22,19 +22,27 @@ export function ValidationPanel({ result, onClose }: Props) {
         </div>
 
         <div className="overflow-y-auto flex-1 p-5 space-y-5">
+          {/* Loading */}
+          {result.loading && (
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <Loader2 size={32} className="animate-spin text-blue-500" />
+              <p className="text-sm text-gray-500">Waiting for validation results…</p>
+            </div>
+          )}
+
           {/* Error */}
-          {result.error && (
+          {!result.loading && result.error && (
             <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
               <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
               <div>
-                <div className="font-semibold text-red-800">Connection Error</div>
+                <div className="font-semibold text-red-800">Validation could not be completed</div>
                 <div className="text-sm text-red-700 mt-0.5">{result.error}</div>
               </div>
             </div>
           )}
 
           {/* ETS Results */}
-          {result.ets && (
+          {!result.loading && result.ets && (
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <h3 className="font-semibold text-gray-800">Essential Test Suite (ETS)</h3>
@@ -83,7 +91,7 @@ export function ValidationPanel({ result, onClose }: Props) {
           )}
 
           {/* KPI Results from API */}
-          {result.kpi && (
+          {!result.loading && result.kpi && (
             <div>
               <h3 className="font-semibold text-gray-800 mb-3">KPI Assessment (API)</h3>
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
@@ -100,9 +108,6 @@ export function ValidationPanel({ result, onClose }: Props) {
             </div>
           )}
 
-          {!result.error && !result.ets && !result.kpi && (
-            <div className="text-center py-8 text-gray-400">No results yet.</div>
-          )}
         </div>
       </div>
     </div>

@@ -98,20 +98,39 @@ export function useValidation() {
     const body = JSON.stringify({ inputs: { record } });
     const headers = { 'Content-Type': 'application/json', Accept: 'application/json' };
 
+    const fetchJson = async (url: string) => {
+      let res: Response;
+      try {
+        res = await fetch(url, { method: 'POST', headers, body });
+      } catch {
+        throw new Error('Could not reach the validation service. Check your internet connection and try again.');
+      }
+      if (!res.ok) {
+        throw new Error(`The validation service returned an unexpected error (HTTP ${res.status}). Please try again later.`);
+      }
+      try {
+        return await res.json() as Record<string, unknown>;
+      } catch {
+        throw new Error('The validation service returned an unreadable response. Please try again later.');
+      }
+    };
+
     try {
       const [etsRes, kpiRes] = await Promise.allSettled([
-        fetch(ETS_URL, { method: 'POST', headers, body }).then(r => r.json()),
-        fetch(KPI_URL, { method: 'POST', headers, body }).then(r => r.json()),
+        fetchJson(ETS_URL),
+        fetchJson(KPI_URL),
       ]);
 
       const ets =
-        etsRes.status === 'fulfilled' ? parseEtsResponse(etsRes.value as Record<string, unknown>) : null;
+        etsRes.status === 'fulfilled' ? parseEtsResponse(etsRes.value) : null;
       const kpi =
-        kpiRes.status === 'fulfilled' ? parseKpiResponse(kpiRes.value as Record<string, unknown>) : null;
+        kpiRes.status === 'fulfilled' ? parseKpiResponse(kpiRes.value) : null;
 
       const error =
         etsRes.status === 'rejected'
-          ? `ETS validation failed: ${String((etsRes as PromiseRejectedResult).reason)}`
+          ? (etsRes as PromiseRejectedResult).reason instanceof Error
+            ? (etsRes as PromiseRejectedResult).reason.message
+            : 'ETS validation failed. Please try again.'
           : null;
 
       setResult({ ets, kpi, error, loading: false });
@@ -119,7 +138,7 @@ export function useValidation() {
       setResult({
         ets: null,
         kpi: null,
-        error: `Network error: ${String(err)}`,
+        error: err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.',
         loading: false,
       });
     }
