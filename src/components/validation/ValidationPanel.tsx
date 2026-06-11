@@ -35,7 +35,7 @@ export function ValidationPanel({ result, onClose }: Props) {
             <div className="flex gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
               <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
               <div>
-                <div className="font-semibold text-red-800">Validation could not be completed</div>
+                <div className="font-semibold text-red-800">Validation failed</div>
                 <div className="text-sm text-red-700 mt-0.5">{result.error}</div>
               </div>
             </div>
