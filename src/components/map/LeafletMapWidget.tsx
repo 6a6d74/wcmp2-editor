@@ -3,9 +3,18 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
 import './leaflet-draw-icons.css';
-
-// Leaflet-draw needs to be imported after leaflet
 import 'leaflet-draw';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIcon2xUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
+
+// Fix Leaflet's broken default marker icon URL detection in bundled environments
+delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)['_getIconUrl'];
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerIcon2xUrl,
+  shadowUrl: markerShadowUrl,
+});
 
 interface Props {
   geometry: GeoJSON.Geometry | null;
@@ -19,14 +28,13 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
   // Keep onChange in a ref so stale-closure event handlers always call the latest version
   const onChangeRef = useRef(onChange);
   useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  // Set to true when the user draws/edits on the map so the sync effect skips fitBounds
+  const internalDrawRef = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, {
-      center: [20, 0],
-      zoom: 2,
-    });
+    const map = L.map(containerRef.current, { center: [20, 0], zoom: 2 });
     mapRef.current = map;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -77,37 +85,31 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       bboxBtnEl?.classList.remove('bbox-active');
     }
 
-    const BBoxControl = L.Control.extend({
-      onAdd() {
-        const container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-        const a = L.DomUtil.create('a', '', container) as HTMLAnchorElement;
-        a.href = '#';
-        a.title = 'Draw bounding box (click to set first corner, click again to complete)';
-        a.style.cssText = 'display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:15px;';
-        a.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="3" cy="3" r="1.5" fill="currentColor" stroke="none"/><circle cx="21" cy="21" r="1.5" fill="currentColor" stroke="none"/></svg>`;
-        bboxBtnEl = a;
-
-        L.DomEvent.on(a, 'click', L.DomEvent.stop);
-        L.DomEvent.on(a, 'click', () => {
-          if (bboxActive) deactivateBbox();
-          else activateBbox();
-        });
-
-        return container;
-      },
-    });
-
-    map.addControl(new BBoxControl({ position: 'topright' }));
+    // Insert bbox button into the draw toolbar immediately after the polygon button
+    const drawToolbar = map.getContainer().querySelector<HTMLElement>(
+      '.leaflet-draw-section .leaflet-draw-toolbar'
+    );
+    const polygonBtn = drawToolbar?.querySelector<HTMLElement>('.leaflet-draw-draw-polygon');
+    if (drawToolbar && polygonBtn) {
+      const a = document.createElement('a');
+      a.href = '#';
+      a.className = 'leaflet-draw-draw-bbox';
+      a.title = 'Draw bounding box (click to set first corner, click again to complete)';
+      bboxBtnEl = a;
+      drawToolbar.insertBefore(a, polygonBtn.nextSibling);
+      L.DomEvent.on(a, 'click', L.DomEvent.stop);
+      L.DomEvent.on(a, 'click', () => {
+        if (bboxActive) deactivateBbox();
+        else activateBbox();
+      });
+    }
 
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (!bboxActive) return;
       if (!firstPoint) {
         firstPoint = e.latlng;
         preview = L.rectangle(L.latLngBounds(firstPoint, firstPoint), {
-          color: '#2563eb',
-          weight: 2,
-          fillOpacity: 0.1,
-          dashArray: '6 4',
+          color: '#2563eb', weight: 2, fillOpacity: 0.1, dashArray: '6 4',
         }).addTo(map);
       } else {
         const bounds = L.latLngBounds(firstPoint, e.latlng);
@@ -115,6 +117,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
         drawnItems.clearLayers();
         const rect = L.rectangle(bounds, { color: '#2563eb', weight: 2 });
         drawnItems.addLayer(rect);
+        internalDrawRef.current = true;
         onChangeRef.current(rect.toGeoJSON().geometry);
         deactivateBbox();
       }
@@ -125,7 +128,9 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       preview.setBounds(L.latLngBounds(firstPoint, e.latlng));
     });
 
-    // Escape cancels an in-progress bbox draw
+    // Deactivate bbox when a leaflet-draw tool is activated
+    map.on(L.Draw.Event.DRAWSTART, () => { if (bboxActive) deactivateBbox(); });
+
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && bboxActive) deactivateBbox();
     };
@@ -139,6 +144,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       const geojson = (event.layer as L.GeoJSON).toGeoJSON() as unknown as {
         geometry: GeoJSON.Geometry;
       };
+      internalDrawRef.current = true;
       onChangeRef.current(geojson.geometry);
     });
 
@@ -152,6 +158,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
         const geojson = (layers[0] as L.GeoJSON).toGeoJSON() as unknown as {
           geometry: GeoJSON.Geometry;
         };
+        internalDrawRef.current = true;
         onChangeRef.current(geojson.geometry);
       }
     });
@@ -163,11 +170,18 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     };
   }, []);
 
-  // Sync external geometry changes onto the map
+  // Sync externally-provided geometry onto the map (e.g. import / reset).
+  // When the user draws or edits directly, internalDrawRef is set so we skip
+  // the clear+re-add+fitBounds — the layer is already on the map.
   useEffect(() => {
     const map = mapRef.current;
     const drawnItems = drawnLayerRef.current;
     if (!map || !drawnItems) return;
+
+    if (internalDrawRef.current) {
+      internalDrawRef.current = false;
+      return;
+    }
 
     drawnItems.clearLayers();
     if (geometry) {
