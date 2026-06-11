@@ -1,4 +1,5 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Plus, Trash2, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { WcmpLink } from '../../types/wcmp2';
 import { LINK_RELATIONS, MIME_TYPES } from '../../utils/vocabularies';
@@ -9,11 +10,55 @@ interface Props {
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }
 
+type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
+interface TestResult { status: TestStatus; code?: number }
+
 function emptyLink(): WcmpLink {
   return { rel: 'enclosure', href: '', type: '', title: '' };
 }
 
+function TestBadge({ result }: { result: TestResult }) {
+  if (result.status === 'loading') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+        <Loader2 size={12} className="animate-spin" /> Testing…
+      </span>
+    );
+  }
+  if (result.status === 'ok') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-green-700">
+        <CheckCircle size={12} /> OK {result.code && `(${result.code})`}
+      </span>
+    );
+  }
+  if (result.status === 'redirect') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+        <AlertCircle size={12} /> Redirect {result.code && `(${result.code})`}
+      </span>
+    );
+  }
+  if (result.status === 'error') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-red-600">
+        <XCircle size={12} /> Error {result.code && `(${result.code})`}
+      </span>
+    );
+  }
+  if (result.status === 'failed') {
+    return (
+      <span className="inline-flex items-center gap-1 text-xs text-red-600">
+        <XCircle size={12} /> Could not connect
+      </span>
+    );
+  }
+  return null;
+}
+
 export function LinksSection({ form, update }: Props) {
+  const [testResults, setTestResults] = useState<Record<number, TestResult>>({});
+
   const setLinks = (links: WcmpLink[]) => update('links', links);
 
   const addLink = () => setLinks([...form.links, emptyLink()]);
@@ -22,9 +67,30 @@ export function LinksSection({ form, update }: Props) {
     const updated = [...form.links];
     updated[i] = { ...updated[i], [field]: value };
     setLinks(updated);
+    // Clear stale test result when the URL changes
+    if (field === 'href') {
+      setTestResults(prev => { const next = { ...prev }; delete next[i]; return next; });
+    }
   };
 
-  const removeLink = (i: number) => setLinks(form.links.filter((_, idx) => idx !== i));
+  const removeLink = (i: number) => {
+    setLinks(form.links.filter((_, idx) => idx !== i));
+    // Clear all results since indices shift after removal
+    setTestResults({});
+  };
+
+  const testLink = async (href: string, index: number) => {
+    if (!href) return;
+    setTestResults(prev => ({ ...prev, [index]: { status: 'loading' } }));
+    try {
+      const res = await fetch(href, { method: 'HEAD' });
+      const code = res.status;
+      const status: TestStatus = code < 300 ? 'ok' : code < 400 ? 'redirect' : 'error';
+      setTestResults(prev => ({ ...prev, [index]: { status, code } }));
+    } catch {
+      setTestResults(prev => ({ ...prev, [index]: { status: 'failed' } }));
+    }
+  };
 
   return (
     <SectionWrapper id="links" title="Links" required>
@@ -100,7 +166,26 @@ export function LinksSection({ form, update }: Props) {
                   placeholder="https://…"
                   className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                {testResults[i] && testResults[i].status !== 'idle' && (
+                  <div className="mt-1">
+                    <TestBadge result={testResults[i]} />
+                    {testResults[i].status === 'failed' && (
+                      <span className="text-xs text-gray-400 ml-1">
+                        — the server may not allow browser requests (CORS)
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
+              <button
+                type="button"
+                onClick={() => testLink(link.href, i)}
+                disabled={!link.href || testResults[i]?.status === 'loading'}
+                title="Test URL (HTTP HEAD)"
+                className="mt-5 px-2.5 py-1.5 text-xs rounded border border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                Test
+              </button>
               <button
                 type="button"
                 onClick={() => removeLink(i)}
