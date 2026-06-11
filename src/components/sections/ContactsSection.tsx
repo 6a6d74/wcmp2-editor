@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Copy } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { Contact } from '../../types/wcmp2';
 import { CONTACT_ROLES } from '../../utils/vocabularies';
@@ -194,9 +194,28 @@ function ContactCard({
 }
 
 export function ContactsSection({ form, update, contactRoles = CONTACT_ROLES }: Props) {
+  const [cloneOpen, setCloneOpen] = useState(false);
+  const cloneRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!cloneOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (cloneRef.current && !cloneRef.current.contains(e.target as Node)) {
+        setCloneOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [cloneOpen]);
+
   const setContacts = (contacts: Contact[]) => update('contacts', contacts);
 
   const addContact = () => setContacts([...form.contacts, emptyContact()]);
+
+  const cloneContact = (i: number) => {
+    setContacts([...form.contacts, { ...form.contacts[i] }]);
+    setCloneOpen(false);
+  };
 
   const updateContact = (i: number, c: Contact) => {
     const updated = [...form.contacts];
@@ -207,6 +226,9 @@ export function ContactsSection({ form, update, contactRoles = CONTACT_ROLES }: 
   const removeContact = (i: number) => {
     setContacts(form.contacts.filter((_, idx) => idx !== i));
   };
+
+  const contactLabel = (c: Contact, i: number) =>
+    c.organization || c.name || `Contact ${i + 1}`;
 
   return (
     <SectionWrapper id="contacts" title="Contacts" required>
@@ -227,13 +249,42 @@ export function ContactsSection({ form, update, contactRoles = CONTACT_ROLES }: 
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={addContact}
-        className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors w-full justify-center"
-      >
-        <Plus size={16} /> Add contact
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={addContact}
+          className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors flex-1 justify-center"
+        >
+          <Plus size={16} /> Add contact
+        </button>
+
+        {form.contacts.length > 0 && (
+          <div className="relative" ref={cloneRef}>
+            <button
+              type="button"
+              onClick={() => setCloneOpen(o => !o)}
+              className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors justify-center"
+            >
+              <Copy size={16} /> Clone existing contact
+            </button>
+
+            {cloneOpen && (
+              <div className="absolute right-0 bottom-full mb-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 min-w-48 py-1">
+                {form.contacts.map((c, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => cloneContact(i)}
+                    className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                  >
+                    {contactLabel(c, i)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </SectionWrapper>
   );
 }
