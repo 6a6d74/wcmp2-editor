@@ -9,10 +9,12 @@ A single-page web application for creating, editing, and publishing metadata rec
 - **Guided form** covering all required and optional WCMP2 fields, with inline documentation and validation hints
 - **Controlled vocabulary pickers** sourced live from the [WMO Codes Registry](https://codes.wmo.int) (Earth System Disciplines, resource types, contact roles, link relations), with static fallbacks when offline
 - **Country picker** — searchable autocomplete for ISO 3166-1 alpha-3 country codes in contact addresses; filter by country name or code prefix
-- **Interactive map** for drawing the geospatial extent of a dataset as a bounding box or polygon, powered by Leaflet
+- **Interactive map** for drawing the geospatial extent of a dataset as a bounding box or polygon, powered by Leaflet. Bounding boxes use a click-to-place-first-corner, click-to-complete interaction with a live preview rectangle
 - **Temporal extent** — supports date, timestamp, and interval types; ISO 8601 duration resolution (`time.resolution`); optional `additionalExtents` block with a live JSON editor and syntax validation
 - **Live KPI scoring** — the seven metadata quality Key Performance Indicators from [pywcmp](https://github.com/wmo-im/pywcmp) are evaluated in real-time as you type, with a letter grade (A–F) and per-KPI hints
 - **API validation** — submit the record to the [Canadian WIS2 Global Discovery Catalogue](https://wis2-gdc.weather.gc.ca) Essential Test Suite for authoritative conformance checking
+- **Clone contacts** — duplicate any existing contact with a single click; useful when a dataset has multiple contacts who share most fields (organisation, address, roles)
+- **Link health check** — each link has a **Test** button that sends an HTTP HEAD request and reports the response status (OK, Redirect, Error, or connection failure)
 - **Import existing records** — load a record from a local `.json` file (drag-and-drop or browse) or fetch directly from a URL; the file is validated as a WCMP2 record before populating the form. On the first edit after importing, the editor asks whether to update the `updated` timestamp
 - **JSON export** — download the finished record as a standards-compliant GeoJSON Feature file
 - **Push to GitHub** — authenticate with a Personal Access Token, choose a repository and directory, and open a pull request directly from the editor (see [GitHub integration](#github-integration) below)
