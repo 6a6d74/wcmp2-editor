@@ -63,7 +63,7 @@ export interface AdditionalExtents {
   temporal?: {
     interval: [string, string][];
     resolution?: string;
-    trs?: string;
+    trs: string;
   };
 }
 
