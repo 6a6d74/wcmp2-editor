@@ -94,7 +94,17 @@ On import:
 
 ## Getting Started
 
-### Docker (recommended)
+### GitHub Pages (no installation required)
+
+The editor is hosted publicly at:
+
+**https://6a6d74.github.io/wcmp2-editor/**
+
+No account or sign-in is needed. Every push to the `main` branch automatically rebuilds and redeploys the site via GitHub Actions.
+
+---
+
+### Docker (recommended for local use)
 
 **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) installed and running.
 
@@ -157,6 +167,9 @@ npm run build
 ## Project Structure
 
 ```
+.github/
+└── workflows/
+    └── deploy-pages.yml   # Build and deploy to GitHub Pages on push to main
 src/
 ├── components/
 │   ├── kpi/               # Live KPI scoring panel
