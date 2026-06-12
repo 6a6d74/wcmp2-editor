@@ -17,7 +17,7 @@ function emptyContact(): Contact {
     organization: '',
     name: '',
     positionName: '',
-    roles: ['pointOfContact'],
+    roles: [],
     emails: [],
     phones: [],
     addresses: [{ country: '' }],
@@ -165,7 +165,7 @@ function ContactCard({
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1.5 block">Roles</label>
             <div className="flex flex-wrap gap-1.5">
-              {roles.slice(0, 12).map(role => {
+              {roles.map(role => {
                 const active = contact.roles?.includes(role);
                 return (
                   <button

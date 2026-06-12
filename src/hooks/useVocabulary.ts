@@ -10,6 +10,15 @@ interface VocabState {
   loading: boolean;
 }
 
+function parseContactRolesCsv(text: string): string[] {
+  const roles = text
+    .split('\n')
+    .slice(1) // skip header row
+    .map(line => line.split(',')[0].trim())
+    .filter(name => name.length > 0);
+  return roles.length > 0 ? roles : [];
+}
+
 function parseWmoRegistry(data: unknown, fallback: VocabItem[]): VocabItem[] {
   try {
     // WMO registry JSON-LD format
@@ -55,8 +64,12 @@ export function useVocabulary(): VocabState {
       fetch('https://codes.wmo.int/wis/resource-type.json')
         .then(r => r.json())
         .catch(() => null),
-    ]).then(([disciplineData, resourceData]) => {
+      fetch('https://raw.githubusercontent.com/wmo-im/wcmp2-codelists/main/codelists/contact-role.csv')
+        .then(r => r.text())
+        .catch(() => null),
+    ]).then(([disciplineData, resourceData, contactRoleCsv]) => {
       if (cancelled) return;
+      const parsedRoles = contactRoleCsv ? parseContactRolesCsv(contactRoleCsv) : null;
       setState(s => ({
         ...s,
         loading: false,
@@ -66,6 +79,7 @@ export function useVocabulary(): VocabState {
         resourceTypes: resourceData
           ? parseWmoRegistry(resourceData, RESOURCE_TYPES)
           : s.resourceTypes,
+        contactRoles: parsedRoles && parsedRoles.length > 0 ? parsedRoles : s.contactRoles,
       }));
     });
 

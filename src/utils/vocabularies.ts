@@ -9,28 +9,13 @@ export const DATA_POLICIES = [
   { id: 'recommended', title: 'Recommended', description: 'Shared according to defined access terms' },
 ];
 
+// WCMP2 contact roles — source: https://github.com/wmo-im/wcmp2-codelists/blob/main/codelists/contact-role.csv
 export const CONTACT_ROLES = [
-  'pointOfContact',
-  'originator',
-  'author',
-  'publisher',
-  'owner',
-  'host',
-  'distributor',
-  'custodian',
+  'licensor',
+  'producer',
   'processor',
-  'resourceProvider',
-  'rightsHolder',
-  'principalInvestigator',
-  'collaborator',
-  'editor',
-  'coAuthor',
-  'contributor',
-  'funder',
-  'mediator',
-  'rightsHolderAndLicensor',
-  'stakeholder',
-  'user',
+  'host',
+  'publisher',
 ];
 
 export const LINK_RELATIONS = [
