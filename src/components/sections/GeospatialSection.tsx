@@ -27,6 +27,43 @@ function parseManual(b: ManualBbox): BBox4 | null {
   return [w, s, e, n];
 }
 
+function allCoords(geometry: GeoJSON.Geometry): GeoJSON.Position[] {
+  switch (geometry.type) {
+    case 'Point':           return [geometry.coordinates];
+    case 'MultiPoint':
+    case 'LineString':      return geometry.coordinates;
+    case 'MultiLineString':
+    case 'Polygon':         return geometry.coordinates.flat();
+    case 'MultiPolygon':    return geometry.coordinates.flat(2);
+    case 'GeometryCollection': return geometry.geometries.flatMap(allCoords);
+    default:                return [];
+  }
+}
+
+function geometryToFields(geometry: GeoJSON.Geometry): ManualBbox | null {
+  const coords = allCoords(geometry);
+  if (coords.length === 0) return null;
+  const lons = coords.map(c => c[0]);
+  const lats = coords.map(c => c[1]);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  let minLon = Math.min(...lons), maxLon = Math.max(...lons);
+
+  // Antimeridian-crossing MultiPolygon: split at exactly ±180.
+  // Reconstruct true W (min of eastern-hemisphere lons) and E (max of western-hemisphere lons).
+  if (maxLon >= 180 && minLon <= -180) {
+    const inner = lons.filter(l => l !== 180 && l !== -180);
+    const pos = inner.filter(l => l >= 0);
+    const neg = inner.filter(l => l < 0);
+    if (pos.length > 0 && neg.length > 0) {
+      minLon = Math.min(...pos);
+      maxLon = Math.max(...neg);
+    }
+  }
+
+  const fmt = (v: number) => parseFloat(v.toFixed(6)).toString();
+  return { n: fmt(maxLat), e: fmt(maxLon), s: fmt(minLat), w: fmt(minLon) };
+}
+
 export function GeospatialSection({ form, update }: Props) {
   const [mode, setMode] = useState<GeomMode>(form.geometry === null ? 'null' : 'draw');
   const [countryCode, setCountryCode] = useState('');
@@ -52,8 +89,11 @@ export function GeospatialSection({ form, update }: Props) {
     } else if (next === 'draw' && form.geometry === null) {
       internalRef.current = true;
       update('geometry', { type: 'Polygon', coordinates: [[[]]] } as unknown as GeoJSON.Geometry);
+    } else if (next === 'manual' && form.geometry) {
+      const fields = geometryToFields(form.geometry);
+      if (fields) setManual(fields);
     }
-    // 'country' and 'manual' — geometry updated when user makes a selection / applies values
+    // 'country' — geometry updated when user makes a selection
   };
 
   const selectCountry = (alpha3: string) => {
