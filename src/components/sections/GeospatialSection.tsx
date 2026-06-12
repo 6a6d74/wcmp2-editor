@@ -167,9 +167,9 @@ export function GeospatialSection({ form, update }: Props) {
 
   const MODES: { id: GeomMode; label: string }[] = [
     { id: 'draw',    label: 'Draw on map' },
-    { id: 'null',    label: 'No geometry (null)' },
-    { id: 'country', label: 'Country (bounding box)' },
-    { id: 'manual',  label: 'Enter coordinates' },
+    { id: 'null',    label: 'No geometry' },
+    { id: 'country', label: 'Country' },
+    { id: 'manual',  label: 'Coordinates' },
     { id: 'json',    label: 'JSON' },
   ];
 
@@ -180,7 +180,7 @@ export function GeospatialSection({ form, update }: Props) {
       </p>
 
       {/* Mode selector */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex gap-2 mb-4">
         {MODES.map(({ id, label }) => (
           <button
             key={id}
