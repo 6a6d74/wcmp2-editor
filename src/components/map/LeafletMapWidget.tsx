@@ -34,7 +34,8 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    const map = L.map(containerRef.current, { center: [20, 0], zoom: 2 });
+    const map = L.map(containerRef.current, { center: [20, 0], zoom: 2, attributionControl: true });
+    map.attributionControl.setPrefix('');
     mapRef.current = map;
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
