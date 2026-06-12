@@ -8,7 +8,7 @@ const LeafletMapWidget = lazy(() =>
   import('../map/LeafletMapWidget').then(m => ({ default: m.LeafletMapWidget }))
 );
 
-type GeomMode = 'draw' | 'null' | 'country' | 'manual' | 'json';
+type GeomMode = 'draw' | 'null' | 'global' | 'country' | 'manual' | 'json';
 
 interface ManualBbox { n: string; e: string; s: string; w: string }
 
@@ -118,6 +118,12 @@ export function GeospatialSection({ form, update }: Props) {
     } else if (next === 'draw' && form.geometry === null) {
       internalRef.current = true;
       update('geometry', { type: 'Polygon', coordinates: [[[]]] } as unknown as GeoJSON.Geometry);
+    } else if (next === 'global') {
+      internalRef.current = true;
+      update('geometry', {
+        type: 'Polygon',
+        coordinates: [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]],
+      } as GeoJSON.Geometry);
     } else if (next === 'manual' && form.geometry) {
       const fields = geometryToFields(form.geometry);
       if (fields) setManual(fields);
@@ -168,6 +174,7 @@ export function GeospatialSection({ form, update }: Props) {
   const MODES: { id: GeomMode; label: string }[] = [
     { id: 'draw',    label: 'Draw on map' },
     { id: 'null',    label: 'No geometry' },
+    { id: 'global',  label: 'Global' },
     { id: 'country', label: 'Country' },
     { id: 'manual',  label: 'Coordinates' },
     { id: 'json',    label: 'JSON' },
@@ -342,22 +349,6 @@ export function GeospatialSection({ form, update }: Props) {
         </div>
       )}
 
-      {/* Global bbox shortcut */}
-      {mode === 'draw' && form.geometry === null && (
-        <button
-          type="button"
-          onClick={() => {
-            internalRef.current = true;
-            update('geometry', {
-              type: 'Polygon',
-              coordinates: [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]],
-            } as GeoJSON.Geometry);
-          }}
-          className="mt-2 text-xs text-blue-600 hover:underline"
-        >
-          Set to global bounding box (-180, -90, 180, 90)
-        </button>
-      )}
     </SectionWrapper>
   );
 }
