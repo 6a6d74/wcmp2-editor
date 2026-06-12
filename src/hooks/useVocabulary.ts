@@ -11,20 +11,9 @@ interface VocabState {
   loading: boolean;
 }
 
-// Relation names always start with a letter and are never quoted.
-// Multi-line description fields appear on continuation lines (start with space/quote) — skip them.
-function parseIanaLinkRelationsCsv(text: string): VocabItem[] {
-  return text
-    .split('\n')
-    .filter(line => /^[a-z]/i.test(line))
-    .map(line => {
-      const name = line.split(',')[0].trim();
-      return name ? { id: name, title: name } : null;
-    })
-    .filter((item): item is VocabItem => item !== null && item.id.length > 0);
-}
-
-function parseWcmp2LinkTypesCsv(text: string): VocabItem[] {
+// WCMP2 link-type CSV: append any entries not already in the static IANA fallback.
+function parseWcmp2LinkTypesCsv(text: string, existing: VocabItem[]): VocabItem[] {
+  const existingIds = new Set(existing.map(r => r.id));
   return text
     .split('\n')
     .slice(1)
@@ -34,12 +23,7 @@ function parseWcmp2LinkTypesCsv(text: string): VocabItem[] {
       const desc = cols[1]?.trim();
       return name ? { id: name, title: desc || name } : null;
     })
-    .filter((item): item is VocabItem => item !== null && item.id.length > 0);
-}
-
-function mergeRelations(iana: VocabItem[], wcmp2: VocabItem[]): VocabItem[] {
-  const ianaIds = new Set(iana.map(r => r.id));
-  return [...iana, ...wcmp2.filter(r => !ianaIds.has(r.id))];
+    .filter((item): item is VocabItem => item !== null && item.id.length > 0 && !existingIds.has(item.id));
 }
 
 function parseContactRolesCsv(text: string): string[] {
@@ -100,32 +84,29 @@ export function useVocabulary(): VocabState {
       fetch('https://raw.githubusercontent.com/wmo-im/wcmp2-codelists/main/codelists/contact-role.csv')
         .then(r => r.text())
         .catch(() => null),
-      fetch('https://www.iana.org/assignments/link-relations/link-relations-1.csv')
-        .then(r => r.text())
-        .catch(() => null),
       fetch('https://raw.githubusercontent.com/wmo-im/wcmp2-codelists/main/codelists/link-type.csv')
         .then(r => r.text())
         .catch(() => null),
-    ]).then(([disciplineData, resourceData, contactRoleCsv, ianaLinksCsv, wcmp2LinksCsv]) => {
+    ]).then(([disciplineData, resourceData, contactRoleCsv, wcmp2LinksCsv]) => {
       if (cancelled) return;
       const parsedRoles = contactRoleCsv ? parseContactRolesCsv(contactRoleCsv) : null;
-      const ianaRelations = ianaLinksCsv ? parseIanaLinkRelationsCsv(ianaLinksCsv) : null;
-      const wcmp2Relations = wcmp2LinksCsv ? parseWcmp2LinkTypesCsv(wcmp2LinksCsv) : null;
-      const merged = ianaRelations && wcmp2Relations
-        ? mergeRelations(ianaRelations, wcmp2Relations)
-        : ianaRelations ?? wcmp2Relations ?? null;
-      setState(s => ({
-        ...s,
-        loading: false,
-        disciplines: disciplineData
-          ? parseWmoRegistry(disciplineData, EARTH_SYSTEM_DISCIPLINES)
-          : s.disciplines,
-        resourceTypes: resourceData
-          ? parseWmoRegistry(resourceData, RESOURCE_TYPES)
-          : s.resourceTypes,
-        contactRoles: parsedRoles && parsedRoles.length > 0 ? parsedRoles : s.contactRoles,
-        linkRelations: merged && merged.length > 0 ? merged : s.linkRelations,
-      }));
+      setState(s => {
+        const wcmp2Additions = wcmp2LinksCsv ? parseWcmp2LinkTypesCsv(wcmp2LinksCsv, s.linkRelations) : [];
+        return {
+          ...s,
+          loading: false,
+          disciplines: disciplineData
+            ? parseWmoRegistry(disciplineData, EARTH_SYSTEM_DISCIPLINES)
+            : s.disciplines,
+          resourceTypes: resourceData
+            ? parseWmoRegistry(resourceData, RESOURCE_TYPES)
+            : s.resourceTypes,
+          contactRoles: parsedRoles && parsedRoles.length > 0 ? parsedRoles : s.contactRoles,
+          linkRelations: wcmp2Additions.length > 0
+            ? [...s.linkRelations, ...wcmp2Additions]
+            : s.linkRelations,
+        };
+      });
     });
 
     return () => { cancelled = true; };
