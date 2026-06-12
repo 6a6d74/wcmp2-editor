@@ -177,15 +177,17 @@ export function LinksSection({ form, update }: Props) {
                   </div>
                 )}
               </div>
-              <button
-                type="button"
-                onClick={() => testLink(link.href, i)}
-                disabled={!link.href || testResults[i]?.status === 'loading'}
-                title="Test URL (HTTP HEAD)"
-                className="mt-5 px-2.5 py-1.5 text-xs rounded border border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                Test
-              </button>
+              {/^https?:\/\//i.test(link.href) && (
+                <button
+                  type="button"
+                  onClick={() => testLink(link.href, i)}
+                  disabled={testResults[i]?.status === 'loading'}
+                  title="Test URL (HTTP HEAD)"
+                  className="mt-5 px-2.5 py-1.5 text-xs rounded border border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  Test
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => removeLink(i)}
