@@ -15,6 +15,7 @@ A single-page web application for creating, editing, and publishing metadata rec
 - **API validation** — submit the record to the [Canadian WIS2 Global Discovery Catalogue](https://wis2-gdc.weather.gc.ca) Essential Test Suite for authoritative conformance checking
 - **Clone contacts** — duplicate any existing contact with a single click; useful when a dataset has multiple contacts who share most fields (organisation, address, roles)
 - **Link health check** — each link has a **Test** button that sends an HTTP HEAD request and reports the response status (OK, Redirect, Error, or connection failure)
+- **Country bounding boxes** — select a country from the geospatial extent picker to populate the geometry with that country's bounding box. Countries whose territory crosses the 180° antimeridian (Fiji, Kiribati, Russia) are represented as a GeoJSON `MultiPolygon` split at ±180°, rather than a single world-spanning rectangle
 - **Import existing records** — load a record from a local `.json` file (drag-and-drop or browse) or fetch directly from a URL; the file is validated as a WCMP2 record before populating the form. On the first edit after importing, the editor asks whether to update the `updated` timestamp
 - **JSON export** — download the finished record as a standards-compliant GeoJSON Feature file
 - **Push to GitHub** — authenticate with a Personal Access Token, choose a repository and directory, and open a pull request directly from the editor (see [GitHub integration](#github-integration) below)
