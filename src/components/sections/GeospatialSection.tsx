@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import { SectionWrapper } from './SectionWrapper';
 import { CountryPicker } from '../CountryPicker';
@@ -18,15 +18,27 @@ interface Props {
 export function GeospatialSection({ form, update }: Props) {
   const [mode, setMode] = useState<GeomMode>(form.geometry === null ? 'null' : 'draw');
   const [countryCode, setCountryCode] = useState('');
+  // Tracks whether the current geometry change originated inside this component
+  const internalRef = useRef(false);
+
+  // Sync mode when geometry changes externally (e.g. record import)
+  useEffect(() => {
+    if (internalRef.current) {
+      internalRef.current = false;
+      return;
+    }
+    setMode(form.geometry === null ? 'null' : 'draw');
+    setCountryCode('');
+  }, [form.geometry]);
 
   const switchMode = (next: GeomMode) => {
     setMode(next);
     if (next === 'null') {
+      internalRef.current = true;
       update('geometry', null);
-    } else if (next === 'draw') {
-      if (form.geometry === null) {
-        update('geometry', { type: 'Polygon', coordinates: [[[]]] } as unknown as GeoJSON.Geometry);
-      }
+    } else if (next === 'draw' && form.geometry === null) {
+      internalRef.current = true;
+      update('geometry', { type: 'Polygon', coordinates: [[[]]] } as unknown as GeoJSON.Geometry);
     }
     // 'country' — geometry updated when a country is selected
   };
@@ -34,7 +46,10 @@ export function GeospatialSection({ form, update }: Props) {
   const selectCountry = (alpha3: string) => {
     setCountryCode(alpha3);
     const bbox = getCountryBbox(alpha3);
-    if (bbox) update('geometry', bboxToPolygon(bbox));
+    if (bbox) {
+      internalRef.current = true;
+      update('geometry', bboxToPolygon(bbox));
+    }
   };
 
   const selectedCountry = countryCode ? findCountry(countryCode) : undefined;
@@ -86,30 +101,40 @@ export function GeospatialSection({ form, update }: Props) {
         </div>
       )}
 
-      {/* Map — always visible */}
-      <Suspense
-        fallback={
-          <div className="w-full rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center" style={{ height: 360 }}>
-            <span className="text-gray-400 text-sm">Loading map…</span>
-          </div>
-        }
-      >
-        <LeafletMapWidget
-          geometry={form.geometry}
-          onChange={g => update('geometry', g)}
-        />
-      </Suspense>
+      {/* Map — hidden only when geometry is null */}
+      {mode !== 'null' ? (
+        <Suspense
+          fallback={
+            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center" style={{ height: 360 }}>
+              <span className="text-gray-400 text-sm">Loading map…</span>
+            </div>
+          }
+        >
+          <LeafletMapWidget
+            geometry={form.geometry}
+            onChange={g => { internalRef.current = true; update('geometry', g); }}
+          />
+        </Suspense>
+      ) : (
+        <div
+          className="w-full rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center"
+          style={{ height: 120 }}
+        >
+          <span className="text-gray-400 text-sm">Geometry set to null — non-spatial or global</span>
+        </div>
+      )}
 
       {/* Global bbox shortcut */}
       {mode === 'draw' && form.geometry === null && (
         <button
           type="button"
-          onClick={() =>
+          onClick={() => {
+            internalRef.current = true;
             update('geometry', {
               type: 'Polygon',
               coordinates: [[[-180, -90], [180, -90], [180, 90], [-180, 90], [-180, -90]]],
-            } as GeoJSON.Geometry)
-          }
+            } as GeoJSON.Geometry);
+          }}
           className="mt-2 text-xs text-blue-600 hover:underline"
         >
           Set to global bounding box (-180, -90, 180, 90)
