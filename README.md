@@ -90,6 +90,7 @@ On import:
 | Framework | [React 18](https://react.dev) + [Vite 8](https://vite.dev) |
 | Language | TypeScript |
 | Styling | [Tailwind CSS v3](https://tailwindcss.com) |
+| Container | [Docker](https://www.docker.com) — node:22-alpine + `vite preview`, published to [GHCR](https://ghcr.io/6a6d74/wcmp2-editor) |
 | Map | [Leaflet](https://leafletjs.com) + [react-leaflet](https://react-leaflet.js.org) + [leaflet-draw](https://github.com/Leaflet/Leaflet.draw) |
 | Icons | [lucide-react](https://lucide.dev) |
 | Validation API | [Canadian WIS2 GDC](https://wis2-gdc.weather.gc.ca) (`pywcmp-wis2-wcmp2-ets` process) |
@@ -112,26 +113,21 @@ No account or sign-in is needed. Every push to the `main` branch automatically r
 
 **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) installed and running.
 
-```bash
-git clone https://github.com/6a6d74/wcmp2-editor.git
-cd wcmp2-editor
-```
-
-**Build the image:**
+The pre-built image is published to the GitHub Container Registry on every push to `main`:
 
 ```bash
-docker build -t wcmp2-editor .
+docker pull ghcr.io/6a6d74/wcmp2-editor:latest
 ```
 
 **Run the container:**
 
 ```bash
-docker run -d --name wcmp2-editor -p 8080:80 wcmp2-editor
+docker run -d --name wcmp2-editor -p 8080:4173 ghcr.io/6a6d74/wcmp2-editor:latest
 ```
 
 Open `http://localhost:8080` in your browser.
 
-The `-d` flag runs the container in the background. Change `8080` to any available port on your machine if needed.
+The container listens on port **4173** (served by `vite preview`). Map that to any host port you need with `-p <host-port>:4173`. The `-d` flag runs the container in the background.
 
 **Stop and remove the container:**
 
@@ -140,11 +136,60 @@ docker stop wcmp2-editor
 docker rm wcmp2-editor
 ```
 
-**Remove the image** (optional, frees ~21 MB):
+**Build the image locally** (if you have cloned the repository):
 
 ```bash
-docker rmi wcmp2-editor
+git clone https://github.com/6a6d74/wcmp2-editor.git
+cd wcmp2-editor
+docker build -t wcmp2-editor .
+docker run -d --name wcmp2-editor -p 8080:4173 wcmp2-editor
 ```
+
+---
+
+### Embedding in your own application
+
+The Docker image is designed to sit behind an external reverse proxy — it ships no web server of its own beyond `vite preview`. This makes it straightforward to incorporate into a multi-container application.
+
+**Docker Compose example** (nginx as the proxy):
+
+```yaml
+services:
+  wcmp2-editor:
+    image: ghcr.io/6a6d74/wcmp2-editor:latest
+    restart: unless-stopped
+    # Do not expose port 4173 directly — let the proxy handle it
+
+  proxy:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - wcmp2-editor
+```
+
+**Minimal `nginx.conf`** for the proxy service:
+
+```nginx
+server {
+    listen 80;
+
+    location /wcmp2-editor/ {
+        proxy_pass http://wcmp2-editor:4173/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+**Notes for integrators:**
+
+- The app is a fully client-side SPA. All requests that do not match a static asset should be routed to `index.html` — configure your proxy's SPA fallback accordingly (e.g. `try_files $uri /index.html` in nginx, or equivalent).
+- The container makes outbound HTTPS requests to external services (WMO Codes Registry, Canadian WIS2 GDC validation API, OpenStreetMap tile servers, and `api.github.com`). Ensure outbound internet access is available, or configure appropriate firewall rules.
+- No persistent storage is required — the container is stateless.
+- Available image tags: `latest` (current `main` branch) and short commit SHAs (e.g. `a1b2c3d`) for pinning to a specific release.
 
 ---
 
@@ -173,7 +218,8 @@ npm run build
 ```
 .github/
 └── workflows/
-    └── deploy-pages.yml   # Build and deploy to GitHub Pages on push to main
+    ├── deploy-pages.yml   # Build and deploy to GitHub Pages on push to main
+    └── publish-docker.yml # Build and push Docker image to GHCR on push to main
 src/
 ├── components/
 │   ├── kpi/               # Live KPI scoring panel
