@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { EARTH_SYSTEM_DISCIPLINES, CONTACT_ROLES, RESOURCE_TYPES } from '../utils/vocabularies';
+import { EARTH_SYSTEM_DISCIPLINES, CONTACT_ROLES, RESOURCE_TYPES, LINK_RELATIONS } from '../utils/vocabularies';
 
 interface VocabItem { id: string; title: string; description?: string }
 
@@ -7,7 +7,39 @@ interface VocabState {
   disciplines: VocabItem[];
   contactRoles: string[];
   resourceTypes: VocabItem[];
+  linkRelations: VocabItem[];
   loading: boolean;
+}
+
+// Relation names always start with a letter and are never quoted.
+// Multi-line description fields appear on continuation lines (start with space/quote) — skip them.
+function parseIanaLinkRelationsCsv(text: string): VocabItem[] {
+  return text
+    .split('\n')
+    .filter(line => /^[a-z]/i.test(line))
+    .map(line => {
+      const name = line.split(',')[0].trim();
+      return name ? { id: name, title: name } : null;
+    })
+    .filter((item): item is VocabItem => item !== null && item.id.length > 0);
+}
+
+function parseWcmp2LinkTypesCsv(text: string): VocabItem[] {
+  return text
+    .split('\n')
+    .slice(1)
+    .map(line => {
+      const cols = line.split(',');
+      const name = cols[0]?.trim();
+      const desc = cols[1]?.trim();
+      return name ? { id: name, title: desc || name } : null;
+    })
+    .filter((item): item is VocabItem => item !== null && item.id.length > 0);
+}
+
+function mergeRelations(iana: VocabItem[], wcmp2: VocabItem[]): VocabItem[] {
+  const ianaIds = new Set(iana.map(r => r.id));
+  return [...iana, ...wcmp2.filter(r => !ianaIds.has(r.id))];
 }
 
 function parseContactRolesCsv(text: string): string[] {
@@ -50,6 +82,7 @@ export function useVocabulary(): VocabState {
     disciplines: EARTH_SYSTEM_DISCIPLINES,
     contactRoles: CONTACT_ROLES,
     resourceTypes: RESOURCE_TYPES,
+    linkRelations: LINK_RELATIONS,
     loading: false,
   });
 
@@ -67,9 +100,20 @@ export function useVocabulary(): VocabState {
       fetch('https://raw.githubusercontent.com/wmo-im/wcmp2-codelists/main/codelists/contact-role.csv')
         .then(r => r.text())
         .catch(() => null),
-    ]).then(([disciplineData, resourceData, contactRoleCsv]) => {
+      fetch('https://www.iana.org/assignments/link-relations/link-relations-1.csv')
+        .then(r => r.text())
+        .catch(() => null),
+      fetch('https://raw.githubusercontent.com/wmo-im/wcmp2-codelists/main/codelists/link-type.csv')
+        .then(r => r.text())
+        .catch(() => null),
+    ]).then(([disciplineData, resourceData, contactRoleCsv, ianaLinksCsv, wcmp2LinksCsv]) => {
       if (cancelled) return;
       const parsedRoles = contactRoleCsv ? parseContactRolesCsv(contactRoleCsv) : null;
+      const ianaRelations = ianaLinksCsv ? parseIanaLinkRelationsCsv(ianaLinksCsv) : null;
+      const wcmp2Relations = wcmp2LinksCsv ? parseWcmp2LinkTypesCsv(wcmp2LinksCsv) : null;
+      const merged = ianaRelations && wcmp2Relations
+        ? mergeRelations(ianaRelations, wcmp2Relations)
+        : ianaRelations ?? wcmp2Relations ?? null;
       setState(s => ({
         ...s,
         loading: false,
@@ -80,6 +124,7 @@ export function useVocabulary(): VocabState {
           ? parseWmoRegistry(resourceData, RESOURCE_TYPES)
           : s.resourceTypes,
         contactRoles: parsedRoles && parsedRoles.length > 0 ? parsedRoles : s.contactRoles,
+        linkRelations: merged && merged.length > 0 ? merged : s.linkRelations,
       }));
     });
 

@@ -5,9 +5,12 @@ import type { WcmpLink } from '../../types/wcmp2';
 import { LINK_RELATIONS, MIME_TYPES } from '../../utils/vocabularies';
 import { SectionWrapper } from './SectionWrapper';
 
+interface VocabItem { id: string; title: string }
+
 interface Props {
   form: FormState;
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+  linkRelations?: VocabItem[];
 }
 
 type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
@@ -56,7 +59,7 @@ function TestBadge({ result }: { result: TestResult }) {
   return null;
 }
 
-export function LinksSection({ form, update }: Props) {
+export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: Props) {
   const [testResults, setTestResults] = useState<Record<number, TestResult>>({});
 
   const setLinks = (links: WcmpLink[]) => update('links', links);
@@ -117,9 +120,9 @@ export function LinksSection({ form, update }: Props) {
                   onChange={e => updateLink(i, 'rel', e.target.value)}
                   className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
-                  {LINK_RELATIONS.map(r => (
+                  {linkRelations.map(r => (
                     <option key={r.id} value={r.id}>
-                      {r.id} — {r.title}
+                      {r.title !== r.id ? `${r.id} — ${r.title}` : r.id}
                     </option>
                   ))}
                 </select>

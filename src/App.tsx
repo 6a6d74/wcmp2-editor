@@ -97,7 +97,7 @@ export default function App() {
           <TemporalSection form={form} update={handleUpdate} />
           <ContactsSection form={form} update={handleUpdate} contactRoles={vocab.contactRoles} />
           <DataPolicySection form={form} update={handleUpdate} />
-          <LinksSection form={form} update={handleUpdate} />
+          <LinksSection form={form} update={handleUpdate} linkRelations={vocab.linkRelations} />
           <OptionalSection form={form} update={handleUpdate} />
           <JsonPreviewSection record={record} />
 

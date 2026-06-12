@@ -18,33 +18,39 @@ export const CONTACT_ROLES = [
   'publisher',
 ];
 
+// Fallback link relations — IANA standard + WCMP2 codelists.
+// title === id for IANA entries (names are self-descriptive);
+// title = short description for WCMP2-specific entries.
+// Sources: https://www.iana.org/assignments/link-relations/link-relations-1.csv
+//          https://github.com/wmo-im/wcmp2-codelists/blob/main/codelists/link-type.csv
 export const LINK_RELATIONS = [
-  // IANA standard
-  { id: 'alternate', title: 'Alternate representation' },
-  { id: 'canonical', title: 'Canonical URL' },
-  { id: 'describedby', title: 'Described by' },
-  { id: 'enclosure', title: 'Data enclosure (download)' },
-  { id: 'item', title: 'Item (single record)' },
-  { id: 'items', title: 'Items collection' },
-  { id: 'license', title: 'License' },
-  { id: 'related', title: 'Related resource' },
-  { id: 'self', title: 'This document' },
-  { id: 'service', title: 'Service' },
-  { id: 'service-doc', title: 'Service documentation' },
-  { id: 'service-desc', title: 'Service description' },
-  { id: 'start', title: 'Start / home' },
-  { id: 'type', title: 'Type' },
-  { id: 'up', title: 'Parent' },
-  // OGC / WIS extensions
-  { id: 'archives', title: 'Archives (historical data)' },
-  { id: 'cite-as', title: 'Cite as (preferred citation)' },
-  { id: 'collection', title: 'Parent collection' },
-  { id: 'conformance', title: 'Conformance' },
-  { id: 'data', title: 'Data' },
-  { id: 'preview', title: 'Preview / thumbnail image' },
-  { id: 'root', title: 'Landing page' },
-  { id: 'search', title: 'Search interface' },
-  { id: 'subsetting', title: 'Subsetting / filter interface' },
+  // IANA (representative subset — full list loaded dynamically at runtime)
+  { id: 'alternate',    title: 'alternate' },
+  { id: 'archives',     title: 'archives' },
+  { id: 'canonical',    title: 'canonical' },
+  { id: 'cite-as',      title: 'cite-as' },
+  { id: 'collection',   title: 'collection' },
+  { id: 'describedby',  title: 'describedby' },
+  { id: 'enclosure',    title: 'enclosure' },
+  { id: 'item',         title: 'item' },
+  { id: 'items',        title: 'items' },
+  { id: 'license',      title: 'license' },
+  { id: 'preview',      title: 'preview' },
+  { id: 'related',      title: 'related' },
+  { id: 'search',       title: 'search' },
+  { id: 'self',         title: 'self' },
+  { id: 'service',      title: 'service' },
+  { id: 'service-desc', title: 'service-desc' },
+  { id: 'service-doc',  title: 'service-doc' },
+  { id: 'start',        title: 'start' },
+  { id: 'type',         title: 'type' },
+  { id: 'up',           title: 'up' },
+  // WCMP2 codelists
+  { id: 'data',         title: 'data' },
+  { id: 'deletion',     title: 'deletion' },
+  { id: 'station',      title: 'station' },
+  { id: 'stations',     title: 'stations' },
+  { id: 'update',       title: 'update' },
 ];
 
 export const MIME_TYPES = [
