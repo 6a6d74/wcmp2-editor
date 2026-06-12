@@ -106,7 +106,8 @@ function RelationCombobox({ value, onChange, options }: {
         onBlur={handleBlur}
         autoComplete="off"
         spellCheck={false}
-        className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+        placeholder="select"
+        className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white placeholder-gray-400"
       />
       {open && filtered.length > 0 && (
         <div
@@ -136,7 +137,7 @@ type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
 interface TestResult { status: TestStatus; code?: number }
 
 function emptyLink(): WcmpLink {
-  return { rel: 'enclosure', href: '', type: '', title: '' };
+  return { rel: '', href: '', type: '', title: '' };
 }
 
 function TestBadge({ result }: { result: TestResult }) {
