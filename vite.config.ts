@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: process.env.GITHUB_ACTIONS ? '/wcmp2-editor/' : '/',
+  base: process.env.VITE_BASE_PATH || '/',
   server: {
     host: '0.0.0.0',
     allowedHosts: true,

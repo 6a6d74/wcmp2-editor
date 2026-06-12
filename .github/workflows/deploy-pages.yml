@@ -30,6 +30,7 @@ jobs:
       - run: npm run build
         env:
           GITHUB_ACTIONS: true
+          VITE_BASE_PATH: /wcmp2-editor/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -145,6 +145,12 @@ docker build -t wcmp2-editor .
 docker run -d --name wcmp2-editor -p 8080:4173 wcmp2-editor
 ```
 
+If the app will be served under a sub-path (e.g. `/wcmp2-editor/`), pass `VITE_BASE_PATH` at build time:
+
+```bash
+docker build --build-arg VITE_BASE_PATH=/wcmp2-editor/ -t wcmp2-editor .
+```
+
 ---
 
 ### Embedding in your own application
@@ -190,6 +196,7 @@ server {
 - The container makes outbound HTTPS requests to external services (WMO Codes Registry, Canadian WIS2 GDC validation API, OpenStreetMap tile servers, and `api.github.com`). Ensure outbound internet access is available, or configure appropriate firewall rules.
 - No persistent storage is required — the container is stateless.
 - Available image tags: `latest` (current `main` branch) and short commit SHAs (e.g. `a1b2c3d`) for pinning to a specific release.
+- If serving the app under a sub-path, build the image with `--build-arg VITE_BASE_PATH=/your-path/` so that asset URLs in the built output are prefixed correctly. The default is `/` (root).
 - **Public-facing deployments must be placed behind a reverse proxy** (such as nginx, Caddy, or a cloud load balancer). The container runs `vite preview`, which is a lightweight file server with no TLS, rate limiting, or authentication. A reverse proxy provides HTTPS termination, access control, and protection against direct exposure of the internal port.
 
 ---
