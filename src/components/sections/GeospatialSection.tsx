@@ -115,9 +115,6 @@ export function GeospatialSection({ form, update }: Props) {
     if (next === 'null') {
       internalRef.current = true;
       update('geometry', null);
-    } else if (next === 'draw' && form.geometry === null) {
-      internalRef.current = true;
-      update('geometry', { type: 'Polygon', coordinates: [[[]]] } as unknown as GeoJSON.Geometry);
     } else if (next === 'global') {
       internalRef.current = true;
       update('geometry', {

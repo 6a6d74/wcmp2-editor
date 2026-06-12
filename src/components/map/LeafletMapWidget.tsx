@@ -21,6 +21,58 @@ interface Props {
   onChange: (geometry: GeoJSON.Geometry | null) => void;
 }
 
+type ShapeType = 'none' | 'points' | 'polygons';
+
+function getCurrentShapeType(drawnItems: L.FeatureGroup): ShapeType {
+  const layers = drawnItems.getLayers();
+  if (layers.length === 0) return 'none';
+  if (layers.some(l => l instanceof L.Marker)) return 'points';
+  return 'polygons';
+}
+
+function computeGeometry(drawnItems: L.FeatureGroup): GeoJSON.Geometry | null {
+  const layers = drawnItems.getLayers();
+  if (layers.length === 0) return null;
+
+  const markers = layers.filter(l => l instanceof L.Marker) as L.Marker[];
+  const polys   = layers.filter(l => l instanceof L.Polygon) as L.Polygon[];
+
+  if (markers.length > 0) {
+    const coords = markers.map(m => {
+      const ll = m.getLatLng();
+      return [ll.lng, ll.lat] as GeoJSON.Position;
+    });
+    if (coords.length === 1) return { type: 'Point', coordinates: coords[0] };
+    return { type: 'MultiPoint', coordinates: coords };
+  }
+
+  if (polys.length > 0) {
+    type PolyFeature = { geometry: GeoJSON.Polygon };
+    const allCoords = polys.map(
+      p => ((p as unknown as { toGeoJSON: () => PolyFeature }).toGeoJSON()).geometry.coordinates
+    );
+    if (allCoords.length === 1) return { type: 'Polygon', coordinates: allCoords[0] };
+    return { type: 'MultiPolygon', coordinates: allCoords };
+  }
+
+  return null;
+}
+
+function geometryLabel(geometry: GeoJSON.Geometry): string {
+  switch (geometry.type) {
+    case 'Point':
+      return `Point [${(geometry as GeoJSON.Point).coordinates.map(n => n.toFixed(4)).join(', ')}]`;
+    case 'MultiPoint':
+      return `MultiPoint [${(geometry as GeoJSON.MultiPoint).coordinates.length} points]`;
+    case 'Polygon':
+      return `Polygon [${(geometry as GeoJSON.Polygon).coordinates[0].length - 1} vertices]`;
+    case 'MultiPolygon':
+      return `MultiPolygon [${(geometry as GeoJSON.MultiPolygon).coordinates.length} polygons]`;
+    default:
+      return geometry.type;
+  }
+}
+
 export function LeafletMapWidget({ geometry, onChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -47,7 +99,6 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     map.addLayer(drawnItems);
     drawnLayerRef.current = drawnItems;
 
-    // rectangle: false — replaced by the custom click-click bbox tool below
     const drawControl = new (L.Control as unknown as { Draw: new (opts: unknown) => L.Control }).Draw({
       position: 'topright',
       draw: {
@@ -65,6 +116,27 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     });
     map.addControl(drawControl);
 
+    // Internal access to draw handlers for programmatic (re-)activation after conflict dialog
+    type DrawModeMap = Record<string, { handler: { enable: () => void } }>;
+    const drawModes: DrawModeMap =
+      (drawControl as unknown as { _toolbars: { draw: { _modes: DrawModeMap } } })
+        ._toolbars.draw._modes;
+
+    // Ask the user before switching between point and polygon geometry types.
+    // Returns true if it's safe to proceed (no conflict, or user confirmed).
+    function confirmTypeSwitch(incoming: ShapeType): boolean {
+      const current = getCurrentShapeType(drawnItems);
+      if (current === 'none' || current === incoming) return true;
+      const existingLabel = current === 'points' ? 'point' : 'polygon';
+      const incomingLabel = incoming === 'points' ? 'point' : 'polygon';
+      const ok = window.confirm(
+        `You already have ${existingLabel} geometry on the map. ` +
+        `Switching to ${incomingLabel} geometry will delete it. Proceed?`
+      );
+      if (ok) drawnItems.clearLayers();
+      return ok;
+    }
+
     // --- Click-click bounding box tool ---
     let bboxActive = false;
     let firstPoint: L.LatLng | null = null;
@@ -72,15 +144,12 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     let bboxBtnEl: HTMLElement | null = null;
 
     function activateBbox() {
-      bboxActive = true;
-      firstPoint = null;
+      bboxActive = true; firstPoint = null;
       map.getContainer().style.cursor = 'crosshair';
       bboxBtnEl?.classList.add('bbox-active');
     }
-
     function deactivateBbox() {
-      bboxActive = false;
-      firstPoint = null;
+      bboxActive = false; firstPoint = null;
       if (preview) { map.removeLayer(preview); preview = null; }
       map.getContainer().style.cursor = '';
       bboxBtnEl?.classList.remove('bbox-active');
@@ -91,6 +160,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       '.leaflet-draw-section .leaflet-draw-toolbar'
     );
     const polygonBtn = drawToolbar?.querySelector<HTMLElement>('.leaflet-draw-draw-polygon');
+
     if (drawToolbar && polygonBtn) {
       const a = document.createElement('a');
       a.href = '#';
@@ -100,10 +170,28 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       drawToolbar.insertBefore(a, polygonBtn.nextSibling);
       L.DomEvent.on(a, 'click', L.DomEvent.stop);
       L.DomEvent.on(a, 'click', () => {
-        if (bboxActive) deactivateBbox();
-        else activateBbox();
+        if (bboxActive) { deactivateBbox(); return; }
+        if (confirmTypeSwitch('polygons')) activateBbox();
       });
     }
+
+    // Capture-phase listeners fire before Leaflet Draw's bubble-phase handlers,
+    // allowing us to intercept and optionally block the tool activation.
+    polygonBtn?.addEventListener('click', (e) => {
+      if (getCurrentShapeType(drawnItems) === 'points') {
+        e.stopImmediatePropagation();
+        if (confirmTypeSwitch('polygons')) drawModes['polygon']?.handler.enable();
+      }
+    }, { capture: true });
+
+    const markerBtn = drawToolbar?.querySelector<HTMLElement>('.leaflet-draw-draw-marker');
+    markerBtn?.addEventListener('click', (e) => {
+      if (getCurrentShapeType(drawnItems) === 'polygons') {
+        e.stopImmediatePropagation();
+        if (confirmTypeSwitch('points')) drawModes['marker']?.handler.enable();
+      }
+    }, { capture: true });
+    // ------------------------------------
 
     map.on('click', (e: L.LeafletMouseEvent) => {
       if (!bboxActive) return;
@@ -115,11 +203,9 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       } else {
         const bounds = L.latLngBounds(firstPoint, e.latlng);
         if (preview) { map.removeLayer(preview); preview = null; }
-        drawnItems.clearLayers();
-        const rect = L.rectangle(bounds, { color: '#2563eb', weight: 2 });
-        drawnItems.addLayer(rect);
+        drawnItems.addLayer(L.rectangle(bounds, { color: '#2563eb', weight: 2 }));
         internalDrawRef.current = true;
-        onChangeRef.current(rect.toGeoJSON().geometry);
+        onChangeRef.current(computeGeometry(drawnItems));
         deactivateBbox();
       }
     });
@@ -136,32 +222,25 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       if (e.key === 'Escape' && bboxActive) deactivateBbox();
     };
     document.addEventListener('keydown', onKeyDown);
-    // ------------------------------------
 
+    // Accumulate new shapes rather than replacing — supports multi-geometries
     map.on(L.Draw.Event.CREATED, (e: unknown) => {
       const event = e as { layer: L.Layer };
-      drawnItems.clearLayers();
       drawnItems.addLayer(event.layer);
-      const geojson = (event.layer as L.GeoJSON).toGeoJSON() as unknown as {
-        geometry: GeoJSON.Geometry;
-      };
       internalDrawRef.current = true;
-      onChangeRef.current(geojson.geometry);
+      onChangeRef.current(computeGeometry(drawnItems));
     });
 
+    // After individual shapes are deleted, recompute from what remains
     map.on(L.Draw.Event.DELETED, () => {
-      if (drawnItems.getLayers().length === 0) onChangeRef.current(null);
+      internalDrawRef.current = true;
+      onChangeRef.current(computeGeometry(drawnItems));
     });
 
+    // Layers are mutated in place during edit; recompute from current state
     map.on(L.Draw.Event.EDITED, () => {
-      const layers = drawnItems.getLayers();
-      if (layers.length > 0) {
-        const geojson = (layers[0] as L.GeoJSON).toGeoJSON() as unknown as {
-          geometry: GeoJSON.Geometry;
-        };
-        internalDrawRef.current = true;
-        onChangeRef.current(geojson.geometry);
-      }
+      internalDrawRef.current = true;
+      onChangeRef.current(computeGeometry(drawnItems));
     });
 
     return () => {
@@ -171,9 +250,8 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     };
   }, []);
 
-  // Sync externally-provided geometry onto the map (e.g. import / reset).
-  // When the user draws or edits directly, internalDrawRef is set so we skip
-  // the clear+re-add+fitBounds — the layer is already on the map.
+  // Sync externally-provided geometry onto the map (e.g. import / country picker / JSON mode).
+  // Point and MultiPoint use L.Marker so they are draggable in edit mode.
   useEffect(() => {
     const map = mapRef.current;
     const drawnItems = drawnLayerRef.current;
@@ -187,8 +265,17 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     drawnItems.clearLayers();
     if (geometry) {
       try {
-        const layer = L.geoJSON(geometry as Parameters<typeof L.geoJSON>[0]);
-        layer.eachLayer(l => drawnItems.addLayer(l));
+        if (geometry.type === 'Point') {
+          const [lng, lat] = (geometry as GeoJSON.Point).coordinates;
+          drawnItems.addLayer(L.marker([lat, lng]));
+        } else if (geometry.type === 'MultiPoint') {
+          (geometry as GeoJSON.MultiPoint).coordinates.forEach(([lng, lat]) => {
+            drawnItems.addLayer(L.marker([lat, lng]));
+          });
+        } else {
+          const layer = L.geoJSON(geometry as Parameters<typeof L.geoJSON>[0]);
+          layer.eachLayer(l => drawnItems.addLayer(l));
+        }
         const bounds = drawnItems.getBounds();
         if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
       } catch {
@@ -207,11 +294,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       {geometry ? (
         <div className="flex items-center justify-between">
           <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 truncate max-w-sm">
-            {geometry.type}
-            {geometry.type === 'Polygon' &&
-              ` [${(geometry as GeoJSON.Polygon).coordinates[0].length - 1} vertices]`}
-            {geometry.type === 'Point' &&
-              ` [${(geometry as GeoJSON.Point).coordinates.map(n => n.toFixed(4)).join(', ')}]`}
+            {geometryLabel(geometry)}
           </code>
           <button
             type="button"
