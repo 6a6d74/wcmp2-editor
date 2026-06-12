@@ -37,7 +37,6 @@ export function GeospatialSection({ form, update }: Props) {
     if (bbox) update('geometry', bboxToPolygon(bbox));
   };
 
-  const showMap = mode === 'draw' || mode === 'country';
   const selectedCountry = countryCode ? findCountry(countryCode) : undefined;
 
   const MODES: { id: GeomMode; label: string }[] = [
@@ -87,28 +86,19 @@ export function GeospatialSection({ form, update }: Props) {
         </div>
       )}
 
-      {/* Map */}
-      {showMap ? (
-        <Suspense
-          fallback={
-            <div className="w-full rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center" style={{ height: 360 }}>
-              <span className="text-gray-400 text-sm">Loading map…</span>
-            </div>
-          }
-        >
-          <LeafletMapWidget
-            geometry={form.geometry}
-            onChange={g => update('geometry', g)}
-          />
-        </Suspense>
-      ) : (
-        <div
-          className="w-full rounded-lg border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2"
-          style={{ height: 120 }}
-        >
-          <span className="text-gray-400 text-sm">Geometry set to null — non-spatial or global</span>
-        </div>
-      )}
+      {/* Map — always visible */}
+      <Suspense
+        fallback={
+          <div className="w-full rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center" style={{ height: 360 }}>
+            <span className="text-gray-400 text-sm">Loading map…</span>
+          </div>
+        }
+      >
+        <LeafletMapWidget
+          geometry={form.geometry}
+          onChange={g => update('geometry', g)}
+        />
+      </Suspense>
 
       {/* Global bbox shortcut */}
       {mode === 'draw' && form.geometry === null && (
