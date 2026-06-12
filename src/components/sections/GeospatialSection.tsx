@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import { SectionWrapper } from './SectionWrapper';
 import { CountryPicker } from '../CountryPicker';
-import { getCountryBbox, bboxToPolygon, findCountry } from '../../utils/countries';
+import { getCountryBbox, bboxToGeometry, findCountry } from '../../utils/countries';
 
 const LeafletMapWidget = lazy(() =>
   import('../map/LeafletMapWidget').then(m => ({ default: m.LeafletMapWidget }))
@@ -48,7 +48,7 @@ export function GeospatialSection({ form, update }: Props) {
     const bbox = getCountryBbox(alpha3);
     if (bbox) {
       internalRef.current = true;
-      update('geometry', bboxToPolygon(bbox));
+      update('geometry', bboxToGeometry(bbox));
     }
   };
 

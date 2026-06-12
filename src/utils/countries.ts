@@ -151,7 +151,7 @@ export const COUNTRY_BBOXES: Record<string, BBox4> = {
   PRT: [-9.53, 36.84, -6.39, 42.28],
   QAT: [50.74, 24.56, 51.61, 26.11],
   ROU: [20.22, 43.69, 29.63, 48.22],
-  RUS: [-180.0, 41.15, 180.0, 81.25],
+  RUS: [19.64, 41.15, -169.04, 81.25],
   RWA: [29.02, -2.92, 30.82, -1.13],
   KNA: [-62.87, 17.08, -62.53, 17.42],
   LCA: [-61.08, 13.71, -60.87, 14.11],
@@ -210,11 +210,22 @@ export function getCountryBbox(alpha3: string): BBox4 | undefined {
   return COUNTRY_BBOXES[alpha3.toUpperCase()];
 }
 
-export function bboxToPolygon(bbox: BBox4): GeoJSON.Polygon {
+function ring(w: number, s: number, e: number, n: number): GeoJSON.Position[] {
+  return [[w, s], [e, s], [e, n], [w, n], [w, s]];
+}
+
+// When west > east the bbox crosses the antimeridian; split into a MultiPolygon.
+export function bboxToGeometry(bbox: BBox4): GeoJSON.Geometry {
   const [w, s, e, n] = bbox;
+  if (w <= e) {
+    return { type: 'Polygon', coordinates: [ring(w, s, e, n)] };
+  }
   return {
-    type: 'Polygon',
-    coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]],
+    type: 'MultiPolygon',
+    coordinates: [
+      [ring(w, s, 180, n)],
+      [ring(-180, s, e, n)],
+    ],
   };
 }
 
