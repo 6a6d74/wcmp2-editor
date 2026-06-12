@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Plus, Trash2, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { WcmpLink } from '../../types/wcmp2';
@@ -11,6 +11,125 @@ interface Props {
   form: FormState;
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
   linkRelations?: VocabItem[];
+}
+
+function RelationCombobox({ value, onChange, options }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: VocabItem[];
+}) {
+  const [display, setDisplay] = useState(value);
+  const [open, setOpen] = useState(false);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  // Tracks what the user actually typed (vs the autocompleted tail shown in the input)
+  const typedRef = useRef(value);
+  // Prevents autocomplete on backspace/delete so the user can erase a suggestion
+  const suppressRef = useRef(false);
+
+  useEffect(() => { setDisplay(value); typedRef.current = value; }, [value]);
+
+  // Filter against what was typed, not the autocompleted display value
+  const lowerTyped = typedRef.current.toLowerCase();
+  const filtered = lowerTyped.length > 0
+    ? options.filter(r => r.id.toLowerCase().startsWith(lowerTyped))
+    : options;
+
+  const commit = (id: string) => {
+    typedRef.current = id;
+    setDisplay(id);
+    onChange(id);
+    setOpen(false);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' || e.key === 'Delete') suppressRef.current = true;
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setOpen(true);
+        setActiveIdx(i => Math.min(i + 1, filtered.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIdx(i => Math.max(i - 1, 0));
+        break;
+      case 'Enter':
+        if (open && filtered[activeIdx]) { e.preventDefault(); commit(filtered[activeIdx].id); }
+        break;
+      case 'Escape':
+        setOpen(false);
+        break;
+    }
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const typed = e.target.value;
+    const doComplete = !suppressRef.current && typed.length > 0;
+    suppressRef.current = false;
+    typedRef.current = typed;
+
+    if (doComplete) {
+      const match = options.find(r => r.id.toLowerCase().startsWith(typed.toLowerCase()));
+      if (match && match.id !== typed) {
+        setDisplay(match.id);
+        requestAnimationFrame(() => inputRef.current?.setSelectionRange(typed.length, match.id.length));
+        onChange(match.id);
+        setOpen(true);
+        setActiveIdx(0);
+        return;
+      }
+    }
+
+    setDisplay(typed);
+    onChange(typed);
+    setOpen(true);
+    setActiveIdx(0);
+  };
+
+  const handleBlur = (e: React.FocusEvent) => {
+    if (listRef.current?.contains(e.relatedTarget as Node)) return;
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      <input
+        ref={inputRef}
+        type="text"
+        value={display}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={() => setOpen(true)}
+        onBlur={handleBlur}
+        autoComplete="off"
+        spellCheck={false}
+        className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+      />
+      {open && filtered.length > 0 && (
+        <div
+          ref={listRef}
+          className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto"
+        >
+          {filtered.map((r, i) => (
+            <button
+              key={r.id}
+              type="button"
+              tabIndex={-1}
+              onMouseDown={e => { e.preventDefault(); commit(r.id); }}
+              className={`w-full text-left px-3 py-1.5 text-sm transition-colors ${
+                i === activeIdx ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {r.title !== r.id ? `${r.id} — ${r.title}` : r.id}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
@@ -115,17 +234,11 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
                 <label className="text-xs font-medium text-gray-600 mb-1 block">
                   Relation <span className="text-red-500">*</span>
                 </label>
-                <select
+                <RelationCombobox
                   value={link.rel}
-                  onChange={e => updateLink(i, 'rel', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  {linkRelations.map(r => (
-                    <option key={r.id} value={r.id}>
-                      {r.title !== r.id ? `${r.id} — ${r.title}` : r.id}
-                    </option>
-                  ))}
-                </select>
+                  onChange={v => updateLink(i, 'rel', v)}
+                  options={linkRelations}
+                />
               </div>
 
               {/* type */}
