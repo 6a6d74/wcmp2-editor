@@ -117,8 +117,8 @@ export function validateAndParse(raw: unknown): ParseResult {
     } else if (Array.isArray(time['interval'])) {
       timeType = 'interval';
       const iv = time['interval'] as string[];
-      timeBegin = iv[0] === '..' ? '' : str(iv[0]);
-      timeEnd = iv[1] === '..' ? '' : str(iv[1]);
+      timeBegin = iv[0] === '..' ? '..' : str(iv[0]);
+      timeEnd = iv[1] === '..' ? '..' : str(iv[1]);
     }
     // resolution lives directly on the time object
     temporalResolution = str(time['resolution']);

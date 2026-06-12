@@ -32,7 +32,7 @@ export function buildRecord(form: FormState): Wcmp2Record {
     time = { date: form.timeDate };
   } else if (form.timeType === 'timestamp' && form.timeTimestamp) {
     time = { timestamp: form.timeTimestamp };
-  } else if (form.timeType === 'interval' && (form.timeBegin || form.timeEnd)) {
+  } else if (form.timeType === 'interval') {
     time = { interval: [form.timeBegin || '..', form.timeEnd || '..'] };
   }
   // resolution is a direct property of the time object
