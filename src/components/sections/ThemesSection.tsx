@@ -20,6 +20,10 @@ const EXTRA_SCHEMES = [
     url: 'http://codes.wmo.int/bufr4/b',
     label: 'BUFR4 Elements',
   },
+  {
+    url: 'https://vocab.nerc.ac.uk/collection/P07/current/',
+    label: 'CF Standard Names',
+  },
 ];
 
 export function ThemesSection({ form, update, disciplines = [] }: Props) {
@@ -201,7 +205,19 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
         </summary>
         <div className="mt-3 space-y-2 bg-gray-50 border border-gray-200 rounded-lg p-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Scheme URL</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-medium text-gray-600">Scheme URL</label>
+              {/^https?:\/\/.+/.test(customScheme) && (
+                <a
+                  href={customScheme}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  View vocabulary ↗
+                </a>
+              )}
+            </div>
             <div className="flex gap-2 mb-1">
               {EXTRA_SCHEMES.map(s => (
                 <button
