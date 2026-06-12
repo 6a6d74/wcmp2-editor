@@ -6,9 +6,11 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Stage 2: serve
-FROM nginx:1.27-alpine
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Stage 2: serve with vite preview (no nginx — proxy provided externally)
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+EXPOSE 4173
+CMD ["npm", "start"]
