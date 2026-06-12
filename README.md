@@ -190,6 +190,7 @@ server {
 - The container makes outbound HTTPS requests to external services (WMO Codes Registry, Canadian WIS2 GDC validation API, OpenStreetMap tile servers, and `api.github.com`). Ensure outbound internet access is available, or configure appropriate firewall rules.
 - No persistent storage is required — the container is stateless.
 - Available image tags: `latest` (current `main` branch) and short commit SHAs (e.g. `a1b2c3d`) for pinning to a specific release.
+- **Public-facing deployments must be placed behind a reverse proxy** (such as nginx, Caddy, or a cloud load balancer). The container runs `vite preview`, which is a lightweight file server with no TLS, rate limiting, or authentication. A reverse proxy provides HTTPS termination, access control, and protection against direct exposure of the internal port.
 
 ---
 
