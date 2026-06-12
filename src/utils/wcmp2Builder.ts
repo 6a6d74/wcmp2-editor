@@ -15,7 +15,7 @@ export function buildRecord(form: FormState): Wcmp2Record {
     title: form.title,
     description: form.description,
     themes: form.themes,
-    contacts: form.contacts,
+    contacts: form.contacts.map(({ ...c }) => { delete (c as Record<string, unknown>)['positionName']; return c; }),
     created: toIsoZ(form.created),
     'wmo:dataPolicy': form.dataPolicy,
   };

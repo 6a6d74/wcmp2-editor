@@ -16,7 +16,6 @@ function emptyContact(): Contact {
   return {
     organization: '',
     name: '',
-    positionName: '',
     roles: [],
     emails: [],
     phones: [],
