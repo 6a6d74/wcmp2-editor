@@ -21,7 +21,7 @@ const EXTRA_SCHEMES = [
     label: 'BUFR4 Elements',
   },
   {
-    url: 'https://vocab.nerc.ac.uk/collection/P07/current/',
+    url: 'https://vocab.nerc.ac.uk/collection/P07/current',
     label: 'CF Standard Names',
   },
 ];
