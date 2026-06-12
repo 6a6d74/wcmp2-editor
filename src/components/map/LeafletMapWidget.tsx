@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
@@ -19,6 +19,11 @@ L.Icon.Default.mergeOptions({
 interface Props {
   geometry: GeoJSON.Geometry | null;
   onChange: (geometry: GeoJSON.Geometry | null) => void;
+}
+
+interface ConfirmDialog {
+  message: string;
+  onConfirm: () => void;
 }
 
 type ShapeType = 'none' | 'points' | 'polygons';
@@ -83,6 +88,12 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
   // Set to true when the user draws/edits on the map so the sync effect skips fitBounds
   const internalDrawRef = useRef(false);
 
+  // React dialog for geometry-type conflict — avoids window.confirm scroll-to-top side-effect
+  const [dialog, setDialog] = useState<ConfirmDialog | null>(null);
+  // Stable ref so Leaflet event handlers (set up once) can open the dialog
+  const showDialogRef = useRef<(msg: string, onConfirm: () => void) => void>(() => {});
+  showDialogRef.current = (message, onConfirm) => setDialog({ message, onConfirm });
+
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
@@ -122,19 +133,19 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       (drawControl as unknown as { _toolbars: { draw: { _modes: DrawModeMap } } })
         ._toolbars.draw._modes;
 
-    // Ask the user before switching between point and polygon geometry types.
-    // Returns true if it's safe to proceed (no conflict, or user confirmed).
-    function confirmTypeSwitch(incoming: ShapeType): boolean {
-      const current = getCurrentShapeType(drawnItems);
-      if (current === 'none' || current === incoming) return true;
+    // Show the React conflict dialog instead of window.confirm so page scroll is preserved
+    function askTypeSwitch(
+      current: ShapeType,
+      incoming: ShapeType,
+      onConfirmed: () => void
+    ) {
       const existingLabel = current === 'points' ? 'point' : 'polygon';
       const incomingLabel = incoming === 'points' ? 'point' : 'polygon';
-      const ok = window.confirm(
+      showDialogRef.current(
         `You already have ${existingLabel} geometry on the map. ` +
-        `Switching to ${incomingLabel} geometry will delete it. Proceed?`
+        `Switching to ${incomingLabel} geometry will delete it. Proceed?`,
+        () => { drawnItems.clearLayers(); onConfirmed(); }
       );
-      if (ok) drawnItems.clearLayers();
-      return ok;
     }
 
     // --- Click-click bounding box tool ---
@@ -171,7 +182,12 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       L.DomEvent.on(a, 'click', L.DomEvent.stop);
       L.DomEvent.on(a, 'click', () => {
         if (bboxActive) { deactivateBbox(); return; }
-        if (confirmTypeSwitch('polygons')) activateBbox();
+        const current = getCurrentShapeType(drawnItems);
+        if (current === 'points') {
+          askTypeSwitch('points', 'polygons', activateBbox);
+        } else {
+          activateBbox();
+        }
       });
     }
 
@@ -180,7 +196,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     polygonBtn?.addEventListener('click', (e) => {
       if (getCurrentShapeType(drawnItems) === 'points') {
         e.stopImmediatePropagation();
-        if (confirmTypeSwitch('polygons')) drawModes['polygon']?.handler.enable();
+        askTypeSwitch('points', 'polygons', () => drawModes['polygon']?.handler.enable());
       }
     }, { capture: true });
 
@@ -188,7 +204,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     markerBtn?.addEventListener('click', (e) => {
       if (getCurrentShapeType(drawnItems) === 'polygons') {
         e.stopImmediatePropagation();
-        if (confirmTypeSwitch('points')) drawModes['marker']?.handler.enable();
+        askTypeSwitch('polygons', 'points', () => drawModes['marker']?.handler.enable());
       }
     }, { capture: true });
     // ------------------------------------
@@ -291,6 +307,33 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
         className="w-full rounded-lg border border-gray-300 overflow-hidden"
         style={{ height: 360, isolation: 'isolate' }}
       />
+
+      {/* Geometry-type conflict dialog — rendered as a React overlay to avoid
+          the scroll-to-top side-effect that window.confirm causes */}
+      {dialog && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <p className="text-sm text-gray-700">{dialog.message}</p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setDialog(null)}
+                className="px-4 py-2 rounded text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { dialog.onConfirm(); setDialog(null); }}
+                className="px-4 py-2 rounded text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 transition-colors"
+              >
+                Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {geometry ? (
         <div className="flex items-center justify-between">
           <code className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 truncate max-w-sm">
