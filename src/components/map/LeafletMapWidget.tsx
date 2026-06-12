@@ -144,7 +144,18 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
       showDialogRef.current(
         `You already have ${existingLabel} geometry on the map. ` +
         `Switching to ${incomingLabel} geometry will delete it. Proceed?`,
-        () => { drawnItems.clearLayers(); onConfirmed(); }
+        () => {
+          // End any active edit or delete session before clearing
+          const editToolbar = (drawControl as unknown as { _toolbars: { edit: { _modes: Record<string, { handler: { enabled: () => boolean; disable: () => void } }> } } })._toolbars?.edit;
+          if (editToolbar) {
+            ['edit', 'remove'].forEach(m => {
+              const handler = editToolbar._modes?.[m]?.handler;
+              if (handler?.enabled()) handler.disable();
+            });
+          }
+          drawnItems.clearLayers();
+          onConfirmed();
+        }
       );
     }
 
