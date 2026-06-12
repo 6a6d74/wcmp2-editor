@@ -207,6 +207,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     polygonBtn?.addEventListener('click', (e) => {
       if (getCurrentShapeType(drawnItems) === 'points') {
         e.stopImmediatePropagation();
+        e.preventDefault();
         askTypeSwitch('points', 'polygons', () => drawModes['polygon']?.handler.enable());
       }
     }, { capture: true });
@@ -215,6 +216,7 @@ export function LeafletMapWidget({ geometry, onChange }: Props) {
     markerBtn?.addEventListener('click', (e) => {
       if (getCurrentShapeType(drawnItems) === 'polygons') {
         e.stopImmediatePropagation();
+        e.preventDefault();
         askTypeSwitch('polygons', 'points', () => drawModes['marker']?.handler.enable());
       }
     }, { capture: true });
