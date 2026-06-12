@@ -8,13 +8,41 @@ const LeafletMapWidget = lazy(() =>
   import('../map/LeafletMapWidget').then(m => ({ default: m.LeafletMapWidget }))
 );
 
-type GeomMode = 'draw' | 'null' | 'country' | 'manual';
+type GeomMode = 'draw' | 'null' | 'country' | 'manual' | 'json';
 
 interface ManualBbox { n: string; e: string; s: string; w: string }
 
 interface Props {
   form: FormState;
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
+}
+
+const GEOMETRY_TYPES = new Set([
+  'Point', 'MultiPoint', 'LineString', 'MultiLineString',
+  'Polygon', 'MultiPolygon', 'GeometryCollection',
+]);
+
+const UK_EXAMPLE: GeoJSON.Geometry = {
+  type: 'Polygon',
+  coordinates: [
+    [[-8.0, 49.9], [2.0, 49.9], [2.0, 60.9], [-8.0, 60.9], [-8.0, 49.9]],
+  ],
+};
+
+function parseGeometryJson(text: string): GeoJSON.Geometry | null {
+  try {
+    const obj = JSON.parse(text);
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+    if (!GEOMETRY_TYPES.has(obj.type)) return null;
+    if (obj.type === 'GeometryCollection') {
+      if (!Array.isArray(obj.geometries)) return null;
+    } else {
+      if (!Array.isArray(obj.coordinates)) return null;
+    }
+    return obj as GeoJSON.Geometry;
+  } catch {
+    return null;
+  }
 }
 
 function parseManual(b: ManualBbox): BBox4 | null {
@@ -68,6 +96,7 @@ export function GeospatialSection({ form, update }: Props) {
   const [mode, setMode] = useState<GeomMode>(form.geometry === null ? 'null' : 'draw');
   const [countryCode, setCountryCode] = useState('');
   const [manual, setManual] = useState<ManualBbox>({ n: '', e: '', s: '', w: '' });
+  const [jsonText, setJsonText] = useState('');
   const internalRef = useRef(false);
 
   // Sync mode when geometry changes externally (e.g. record import)
@@ -92,6 +121,14 @@ export function GeospatialSection({ form, update }: Props) {
     } else if (next === 'manual' && form.geometry) {
       const fields = geometryToFields(form.geometry);
       if (fields) setManual(fields);
+    } else if (next === 'json') {
+      if (form.geometry) {
+        setJsonText(JSON.stringify(form.geometry, null, 2));
+      } else {
+        setJsonText(JSON.stringify(UK_EXAMPLE, null, 2));
+        internalRef.current = true;
+        update('geometry', UK_EXAMPLE);
+      }
     }
     // 'country' — geometry updated when user makes a selection
   };
@@ -112,10 +149,20 @@ export function GeospatialSection({ form, update }: Props) {
     update('geometry', bboxToGeometry(bbox));
   };
 
+  const handleJsonChange = (text: string) => {
+    setJsonText(text);
+    const parsed = parseGeometryJson(text);
+    if (parsed) {
+      internalRef.current = true;
+      update('geometry', parsed);
+    }
+  };
+
   const setField = (field: keyof ManualBbox, value: string) =>
     setManual(prev => ({ ...prev, [field]: value }));
 
   const manualValid = parseManual(manual) !== null;
+  const jsonValid = parseGeometryJson(jsonText) !== null;
   const selectedCountry = countryCode ? findCountry(countryCode) : undefined;
 
   const MODES: { id: GeomMode; label: string }[] = [
@@ -123,12 +170,13 @@ export function GeospatialSection({ form, update }: Props) {
     { id: 'null',    label: 'No geometry (null)' },
     { id: 'country', label: 'Country (bounding box)' },
     { id: 'manual',  label: 'Enter coordinates' },
+    { id: 'json',    label: 'JSON' },
   ];
 
   return (
     <SectionWrapper id="geospatial" title="Geospatial Extent">
       <p className="text-sm text-gray-500 mb-3">
-        Draw the spatial coverage on the map, pick a country bounding box, enter coordinates manually, or set to null for non-spatial datasets.
+        Draw the spatial coverage on the map, pick a country bounding box, enter coordinates manually, paste GeoJSON directly, or set to null for non-spatial datasets.
       </p>
 
       {/* Mode selector */}
@@ -236,6 +284,38 @@ export function GeospatialSection({ form, update }: Props) {
           >
             Apply
           </button>
+        </div>
+      )}
+
+      {/* JSON geometry entry */}
+      {mode === 'json' && (
+        <div className="mb-4 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">
+              Enter any valid GeoJSON geometry object. The map updates in real time.
+            </span>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+              jsonValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {jsonValid ? 'Valid geometry' : 'Invalid'}
+            </span>
+          </div>
+          <textarea
+            value={jsonText}
+            onChange={e => handleJsonChange(e.target.value)}
+            rows={12}
+            spellCheck={false}
+            className={`w-full font-mono text-xs border rounded-md px-3 py-2 focus:outline-none focus:ring-2 resize-y ${
+              jsonValid
+                ? 'border-gray-300 focus:ring-blue-500'
+                : 'border-red-400 focus:ring-red-400 bg-red-50'
+            }`}
+          />
+          {!jsonValid && jsonText.trim() && (
+            <p className="text-xs text-red-600">
+              Must be a valid GeoJSON geometry object with a recognised <code className="bg-red-100 px-1 rounded">type</code> (Point, Polygon, MultiPolygon, etc.) and a <code className="bg-red-100 px-1 rounded">coordinates</code> array.
+            </p>
+          )}
         </div>
       )}
 
