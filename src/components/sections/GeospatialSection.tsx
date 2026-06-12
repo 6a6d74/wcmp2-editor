@@ -2,23 +2,35 @@ import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import { SectionWrapper } from './SectionWrapper';
 import { CountryPicker } from '../CountryPicker';
-import { getCountryBbox, bboxToGeometry, findCountry } from '../../utils/countries';
+import { getCountryBbox, bboxToGeometry, findCountry, type BBox4 } from '../../utils/countries';
 
 const LeafletMapWidget = lazy(() =>
   import('../map/LeafletMapWidget').then(m => ({ default: m.LeafletMapWidget }))
 );
 
-type GeomMode = 'draw' | 'null' | 'country';
+type GeomMode = 'draw' | 'null' | 'country' | 'manual';
+
+interface ManualBbox { n: string; e: string; s: string; w: string }
 
 interface Props {
   form: FormState;
   update: <K extends keyof FormState>(k: K, v: FormState[K]) => void;
 }
 
+function parseManual(b: ManualBbox): BBox4 | null {
+  const n = parseFloat(b.n), e = parseFloat(b.e);
+  const s = parseFloat(b.s), w = parseFloat(b.w);
+  if ([n, e, s, w].some(isNaN)) return null;
+  if (n < -90 || n > 90 || s < -90 || s > 90) return null;
+  if (e < -180 || e > 180 || w < -180 || w > 180) return null;
+  if (s > n) return null;
+  return [w, s, e, n];
+}
+
 export function GeospatialSection({ form, update }: Props) {
   const [mode, setMode] = useState<GeomMode>(form.geometry === null ? 'null' : 'draw');
   const [countryCode, setCountryCode] = useState('');
-  // Tracks whether the current geometry change originated inside this component
+  const [manual, setManual] = useState<ManualBbox>({ n: '', e: '', s: '', w: '' });
   const internalRef = useRef(false);
 
   // Sync mode when geometry changes externally (e.g. record import)
@@ -29,6 +41,7 @@ export function GeospatialSection({ form, update }: Props) {
     }
     setMode(form.geometry === null ? 'null' : 'draw');
     setCountryCode('');
+    setManual({ n: '', e: '', s: '', w: '' });
   }, [form.geometry]);
 
   const switchMode = (next: GeomMode) => {
@@ -40,7 +53,7 @@ export function GeospatialSection({ form, update }: Props) {
       internalRef.current = true;
       update('geometry', { type: 'Polygon', coordinates: [[[]]] } as unknown as GeoJSON.Geometry);
     }
-    // 'country' — geometry updated when a country is selected
+    // 'country' and 'manual' — geometry updated when user makes a selection / applies values
   };
 
   const selectCountry = (alpha3: string) => {
@@ -52,18 +65,30 @@ export function GeospatialSection({ form, update }: Props) {
     }
   };
 
+  const applyManual = () => {
+    const bbox = parseManual(manual);
+    if (!bbox) return;
+    internalRef.current = true;
+    update('geometry', bboxToGeometry(bbox));
+  };
+
+  const setField = (field: keyof ManualBbox, value: string) =>
+    setManual(prev => ({ ...prev, [field]: value }));
+
+  const manualValid = parseManual(manual) !== null;
   const selectedCountry = countryCode ? findCountry(countryCode) : undefined;
 
   const MODES: { id: GeomMode; label: string }[] = [
-    { id: 'draw', label: 'Draw on map' },
-    { id: 'null', label: 'No geometry (null)' },
+    { id: 'draw',    label: 'Draw on map' },
+    { id: 'null',    label: 'No geometry (null)' },
     { id: 'country', label: 'Country (bounding box)' },
+    { id: 'manual',  label: 'Enter coordinates' },
   ];
 
   return (
     <SectionWrapper id="geospatial" title="Geospatial Extent">
       <p className="text-sm text-gray-500 mb-3">
-        Draw the spatial coverage on the map, pick a country bounding box, or set to null for non-spatial datasets.
+        Draw the spatial coverage on the map, pick a country bounding box, enter coordinates manually, or set to null for non-spatial datasets.
       </p>
 
       {/* Mode selector */}
@@ -84,7 +109,7 @@ export function GeospatialSection({ form, update }: Props) {
         ))}
       </div>
 
-      {/* Country picker — shown only in country mode */}
+      {/* Country picker */}
       {mode === 'country' && (
         <div className="mb-4 space-y-1.5">
           <label className="block text-sm font-medium text-gray-700">Select country</label>
@@ -98,6 +123,79 @@ export function GeospatialSection({ form, update }: Props) {
               Bounding box for <strong>{selectedCountry.name}</strong> set as geometry.
             </p>
           )}
+        </div>
+      )}
+
+      {/* Manual coordinate entry */}
+      {mode === 'manual' && (
+        <div className="mb-4 space-y-3">
+          <div className="grid grid-cols-3 gap-2 max-w-xs">
+            {/* North — centred in top column */}
+            <div />
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1 text-center">N °</label>
+              <input
+                type="number" min={-90} max={90} step="any"
+                value={manual.n}
+                onChange={e => setField('n', e.target.value)}
+                placeholder="e.g. 71.5"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div />
+
+            {/* West | (gap) | East */}
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1 text-center">W °</label>
+              <input
+                type="number" min={-180} max={180} step="any"
+                value={manual.w}
+                onChange={e => setField('w', e.target.value)}
+                placeholder="e.g. -14.0"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-gray-400 select-none">↔</span>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1 text-center">E °</label>
+              <input
+                type="number" min={-180} max={180} step="any"
+                value={manual.e}
+                onChange={e => setField('e', e.target.value)}
+                placeholder="e.g. 40.0"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* South — centred in bottom column */}
+            <div />
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1 text-center">S °</label>
+              <input
+                type="number" min={-90} max={90} step="any"
+                value={manual.s}
+                onChange={e => setField('s', e.target.value)}
+                placeholder="e.g. 49.9"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div />
+          </div>
+
+          <p className="text-xs text-gray-400">
+            Decimal degrees, WGS84. If W &gt; E the bounding box is treated as crossing the antimeridian.
+          </p>
+
+          <button
+            type="button"
+            onClick={applyManual}
+            disabled={!manualValid}
+            className="px-4 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Apply
+          </button>
         </div>
       )}
 
