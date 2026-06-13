@@ -50,12 +50,20 @@ export function buildRecord(form: FormState): Wcmp2Record {
     links: form.links,
   };
 
+  // Merge spatial and temporal additionalExtents into one object
+  const additionalExtents: Record<string, unknown> = {};
+  if (form.includeAdditionalSpatialExtents && form.additionalSpatialExtentsJson.trim()) {
+    try {
+      Object.assign(additionalExtents, JSON.parse(form.additionalSpatialExtentsJson));
+    } catch { /* invalid JSON — skip */ }
+  }
   if (form.includeAdditionalExtents && form.additionalExtentsJson.trim()) {
     try {
-      record.additionalExtents = JSON.parse(form.additionalExtentsJson);
-    } catch {
-      // invalid JSON — omit rather than corrupt the record
-    }
+      Object.assign(additionalExtents, JSON.parse(form.additionalExtentsJson));
+    } catch { /* invalid JSON — skip */ }
+  }
+  if (Object.keys(additionalExtents).length > 0) {
+    record.additionalExtents = additionalExtents as typeof record.additionalExtents;
   }
 
   return record;

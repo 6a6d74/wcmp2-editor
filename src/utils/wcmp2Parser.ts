@@ -124,13 +124,14 @@ export function validateAndParse(raw: unknown): ParseResult {
     temporalResolution = str(time['resolution']);
   }
 
-  const additionalExtentsRaw = rec['additionalExtents'];
-  const hasAdditionalExtents =
-    !!additionalExtentsRaw &&
-    typeof additionalExtentsRaw === 'object' &&
-    !Array.isArray(additionalExtentsRaw);
-  const additionalExtentsJson = hasAdditionalExtents
-    ? JSON.stringify(additionalExtentsRaw, null, 2)
+  const additionalExtentsRaw = rec['additionalExtents'] as Record<string, unknown> | null | undefined;
+  const hasTemporal = !!additionalExtentsRaw?.['temporal'];
+  const hasSpatial  = !!additionalExtentsRaw?.['spatial'];
+  const additionalExtentsJson = hasTemporal
+    ? JSON.stringify({ temporal: additionalExtentsRaw!['temporal'] }, null, 2)
+    : '';
+  const additionalSpatialExtentsJson = hasSpatial
+    ? JSON.stringify({ spatial: additionalExtentsRaw!['spatial'] }, null, 2)
     : '';
 
   const form: FormState = {
@@ -158,8 +159,10 @@ export function validateAndParse(raw: unknown): ParseResult {
     status: (props['status'] as FormState['status']) ?? {},
     created: toDatetimeLocal(props['created']) || new Date().toISOString().slice(0, 19),
     updated: toDatetimeLocal(props['updated']),
-    includeAdditionalExtents: hasAdditionalExtents,
+    includeAdditionalExtents: hasTemporal,
     additionalExtentsJson,
+    includeAdditionalSpatialExtents: hasSpatial,
+    additionalSpatialExtentsJson,
   };
 
   return { form, errors: [] };

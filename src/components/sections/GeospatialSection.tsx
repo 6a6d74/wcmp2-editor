@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef, useMemo } from 'react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import { SectionWrapper } from './SectionWrapper';
 import { CountryPicker } from '../CountryPicker';
@@ -43,6 +43,23 @@ function parseGeometryJson(text: string): GeoJSON.Geometry | null {
   } catch {
     return null;
   }
+}
+
+function geometryToBboxJson(geometry: GeoJSON.Geometry | null): string {
+  const bbox: [number, number, number, number] = [-180, -90, 180, 90];
+  if (geometry) {
+    const fields = geometryToFields(geometry);
+    if (fields) {
+      bbox[0] = parseFloat(fields.w);
+      bbox[1] = parseFloat(fields.s);
+      bbox[2] = parseFloat(fields.e);
+      bbox[3] = parseFloat(fields.n);
+    }
+  }
+  return JSON.stringify(
+    { spatial: { bbox: [bbox], crs: 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' } },
+    null, 2,
+  );
 }
 
 function parseManual(b: ManualBbox): BBox4 | null {
@@ -167,6 +184,10 @@ export function GeospatialSection({ form, update }: Props) {
   const manualValid = parseManual(manual) !== null;
   const jsonValid = parseGeometryJson(jsonText) !== null;
   const selectedCountry = countryCode ? findCountry(countryCode) : undefined;
+  const spatialJsonValid = useMemo(() => {
+    if (!form.additionalSpatialExtentsJson.trim()) return true;
+    try { JSON.parse(form.additionalSpatialExtentsJson); return true; } catch { return false; }
+  }, [form.additionalSpatialExtentsJson]);
 
   const MODES: { id: GeomMode; label: string }[] = [
     { id: 'draw',    label: 'Draw on map' },
@@ -345,6 +366,58 @@ export function GeospatialSection({ form, update }: Props) {
           <span className="text-gray-400 text-sm">Geometry set to null — non-spatial or global</span>
         </div>
       )}
+
+      {/* ── Additional spatial extents ──────────────────────────────────── */}
+      <div className="pt-3 mt-3 border-t border-gray-100">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.includeAdditionalSpatialExtents}
+            onChange={e => {
+              const checked = e.target.checked;
+              update('includeAdditionalSpatialExtents', checked);
+              if (checked && !form.additionalSpatialExtentsJson.trim()) {
+                update('additionalSpatialExtentsJson', geometryToBboxJson(form.geometry));
+              }
+            }}
+            className="w-4 h-4 rounded border-gray-300 text-blue-600"
+          />
+          <span className="text-sm font-medium text-gray-700">
+            Include additional spatial extents (<code className="text-xs bg-gray-100 px-1 rounded">additionalExtents.spatial</code>)
+          </span>
+        </label>
+
+        {form.includeAdditionalSpatialExtents && (
+          <div className="mt-3 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                Edit JSON directly. The object will be merged into <code className="bg-gray-100 px-1 rounded">additionalExtents</code>.
+              </span>
+              <span className={`text-xs font-medium px-2 py-0.5 rounded ${
+                spatialJsonValid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
+                {spatialJsonValid ? 'Valid JSON' : 'Invalid JSON'}
+              </span>
+            </div>
+            <textarea
+              value={form.additionalSpatialExtentsJson}
+              onChange={e => update('additionalSpatialExtentsJson', e.target.value)}
+              rows={10}
+              spellCheck={false}
+              className={`w-full font-mono text-xs border rounded-md px-3 py-2 focus:outline-none focus:ring-2 resize-y ${
+                spatialJsonValid
+                  ? 'border-gray-300 focus:ring-blue-500'
+                  : 'border-red-400 focus:ring-red-400 bg-red-50'
+              }`}
+            />
+            {!spatialJsonValid && (
+              <p className="text-xs text-red-600">
+                Fix the JSON syntax errors above — invalid JSON will not be included in the exported record.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
     </SectionWrapper>
   );

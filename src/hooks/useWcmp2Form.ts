@@ -47,6 +47,8 @@ export interface FormState {
   // Additional extents (raw JSON, optional)
   includeAdditionalExtents: boolean;
   additionalExtentsJson: string;
+  includeAdditionalSpatialExtents: boolean;
+  additionalSpatialExtentsJson: string;
 }
 
 const defaultForm: FormState = {
@@ -76,6 +78,8 @@ const defaultForm: FormState = {
   updated: '',
   includeAdditionalExtents: false,
   additionalExtentsJson: '',
+  includeAdditionalSpatialExtents: false,
+  additionalSpatialExtentsJson: '',
 };
 
 export function useWcmp2Form() {
