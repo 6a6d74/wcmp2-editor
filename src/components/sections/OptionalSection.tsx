@@ -151,7 +151,7 @@ export function OptionalSection({ form, update }: Props) {
             value={form.rights}
             onChange={e => update('rights', e.target.value)}
             rows={2}
-            placeholder="e.g. © Crown copyright 2024 — open government licence v3.0"
+            placeholder="e.g. © Crown copyright 2026 — open government licence v3.0"
             className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
           />
         </div>
