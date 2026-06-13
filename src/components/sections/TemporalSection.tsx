@@ -1,11 +1,8 @@
-import { useMemo, useState } from 'react';
-import { Calendar } from 'lucide-react';
+import { useMemo } from 'react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import { TEMPORAL_RESOLUTIONS } from '../../utils/vocabularies';
 import { SectionWrapper } from './SectionWrapper';
 
-// Accepts: YYYY-MM-DD, YYYY-MM-DDThh:mmZ, YYYY-MM-DDThh:mm:ssZ,
-//          YYYY-MM-DDThh:mm:ss.sssZ, and the same with +HH:MM offset.
 function isValidIso8601(s: string): boolean {
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return true;
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?Z$/.test(s)) return true;
@@ -18,75 +15,31 @@ function IntervalEndpointInput({ label, value, onChange }: {
   value: string;
   onChange: (v: string) => void;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
-
   const isOpen = value === '..';
-  const textValue = isOpen ? '' : value;
-  const isValid = !textValue || isValidIso8601(textValue);
-
-  // Extract YYYY-MM-DDThh:mm for the datetime-local input
-  const pickerValue = textValue.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/)?.[1] ?? '';
-
-  const handlePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const v = e.target.value; // YYYY-MM-DDThh:mm
-    onChange(v ? `${v}:00Z` : '');
-    setPickerOpen(false);
-  };
+  // Extract YYYY-MM-DDThh:mm for datetime-local; store back as YYYY-MM-DDThh:mm:00Z
+  const pickerValue = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/)?.[1] ?? '';
 
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
       <div className="flex gap-2 items-center">
         <input
-          type="text"
-          value={textValue}
+          type="datetime-local"
+          value={pickerValue}
           disabled={isOpen}
-          onChange={e => onChange(e.target.value)}
-          placeholder="e.g. 2000-01-01T00:00:00Z"
-          className={`flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 font-mono disabled:bg-gray-100 ${
-            !isValid
-              ? 'border-red-400 focus:ring-red-400 bg-red-50'
-              : 'border-gray-300 focus:ring-blue-500'
-          }`}
+          onChange={e => onChange(e.target.value ? `${e.target.value}:00Z` : '')}
+          className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
         />
-        {!isOpen && (
-          <button
-            type="button"
-            onClick={() => setPickerOpen(o => !o)}
-            title="Pick date and time"
-            className={`p-2 border rounded-md transition-colors ${
-              pickerOpen
-                ? 'bg-blue-50 border-blue-400 text-blue-600'
-                : 'border-gray-300 text-gray-500 hover:border-blue-400 hover:text-blue-600'
-            }`}
-          >
-            <Calendar size={15} />
-          </button>
-        )}
         <label className="flex items-center gap-1.5 text-sm text-gray-600 whitespace-nowrap">
           <input
             type="checkbox"
             checked={isOpen}
-            onChange={e => { onChange(e.target.checked ? '..' : ''); setPickerOpen(false); }}
+            onChange={e => onChange(e.target.checked ? '..' : '')}
             className="w-3.5 h-3.5"
           />
           Open
         </label>
       </div>
-      {pickerOpen && !isOpen && (
-        <div className="mt-2 p-3 border border-blue-200 rounded-md bg-blue-50 flex flex-col gap-1">
-          <p className="text-xs text-gray-500">All times are UTC</p>
-          <input
-            type="datetime-local"
-            value={pickerValue}
-            onChange={handlePickerChange}
-            className="border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-fit"
-          />
-        </div>
-      )}
-      {!isValid && textValue && (
-        <p className="text-xs text-red-600 mt-1">Must be a valid ISO 8601 date or date-time (e.g. 2000-01-01T00:00:00Z)</p>
-      )}
     </div>
   );
 }
@@ -175,6 +128,21 @@ export function TemporalSection({ form, update }: Props) {
                 onChange={v => update('timeEnd', v)}
               />
             </div>
+            {(() => {
+              const b = form.timeBegin, e = form.timeEnd;
+              if (b && b !== '..' && e && e !== '..' && isValidIso8601(b) && isValidIso8601(e)) {
+                const beginMs = new Date(b).getTime();
+                const endMs   = new Date(e).getTime();
+                if (!isNaN(beginMs) && !isNaN(endMs) && beginMs >= endMs) {
+                  return (
+                    <p className="text-xs text-red-600">
+                      Begin must be earlier than End.
+                    </p>
+                  );
+                }
+              }
+              return null;
+            })()}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
