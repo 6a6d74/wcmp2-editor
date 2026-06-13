@@ -101,16 +101,28 @@ export default function App() {
           <OptionalSection form={form} update={handleUpdate} />
           <JsonPreviewSection record={record} />
 
-          <div className="pb-10 text-center text-xs text-gray-400">
-            WMO Core Metadata Profile v2 Editor — records validated by{' '}
-            <a
-              href="https://wis2-gdc.weather.gc.ca"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:underline"
-            >
-              wis2-gdc.weather.gc.ca
-            </a>
+          <div className="pb-10 text-center text-xs text-gray-400 space-y-1">
+            <div>
+              WMO Core Metadata Profile v2 Editor — records validated by{' '}
+              <a
+                href="https://wis2-gdc.weather.gc.ca"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:underline"
+              >
+                wis2-gdc.weather.gc.ca
+              </a>
+            </div>
+            <div>
+              <a
+                href="https://github.com/6a6d74/wcmp2-editor"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:underline"
+              >
+                github.com/6a6d74/wcmp2-editor
+              </a>
+            </div>
           </div>
         </div>
       </main>
