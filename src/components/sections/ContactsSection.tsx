@@ -150,6 +150,49 @@ function ContactCard({
             </div>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={contact.position !== undefined}
+                  onChange={e => up('position', e.target.checked ? '' : undefined)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Position
+              </label>
+              {contact.position !== undefined && (
+                <input
+                  type="text"
+                  value={contact.position}
+                  onChange={e => up('position', e.target.value)}
+                  placeholder="Role or position of the responsible person or team"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={contact.hoursOfService !== undefined}
+                  onChange={e => up('hoursOfService', e.target.checked ? '' : undefined)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Hours of service
+              </label>
+              {contact.hoursOfService !== undefined && (
+                <input
+                  type="text"
+                  value={contact.hoursOfService}
+                  onChange={e => up('hoursOfService', e.target.value)}
+                  placeholder="Time period when the contact can be contacted"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+          </div>
+
           <div>
             <label className="text-xs font-medium text-gray-600 mb-1 block">Contact instructions</label>
             <textarea

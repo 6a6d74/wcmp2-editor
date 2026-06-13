@@ -7,6 +7,7 @@ export interface Contact {
   identifier?: string;
   organization?: string;
   name?: string;
+  position?: string;
   logo?: { href: string; rel: string; type?: string };
   phones?: { value: string; roles?: string[] }[];
   emails?: { value: string; roles?: string[] }[];
@@ -19,6 +20,7 @@ export interface Contact {
   }[];
   links?: WcmpLink[];
   contactInstructions?: string;
+  hoursOfService?: string;
   roles?: string[];
 }
 
