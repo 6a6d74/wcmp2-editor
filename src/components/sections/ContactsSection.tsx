@@ -17,10 +17,6 @@ function emptyContact(): Contact {
     organization: '',
     name: '',
     roles: [],
-    emails: [],
-    phones: [],
-    addresses: [{ country: '' }],
-    contactInstructions: '',
   };
 }
 
@@ -44,7 +40,16 @@ function ContactCard({
 
   const email = contact.emails?.[0]?.value || '';
   const phone = contact.phones?.[0]?.value || '';
-  const country = contact.addresses?.[0]?.country || '';
+
+  const addr0 = contact.addresses?.[0] ?? {};
+  const countryIncluded = 'country' in addr0;
+  const cityIncluded = 'city' in addr0;
+
+  const toggleAddressField = (field: 'country' | 'city', include: boolean) => {
+    const next = { ...addr0 } as Record<string, unknown>;
+    if (include) { next[field] = ''; } else { delete next[field]; }
+    up('addresses', Object.keys(next).length > 0 ? [next] : undefined);
+  };
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -98,55 +103,85 @@ function ContactCard({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e =>
-                  up('emails', [{ value: e.target.value, roles: ['pointOfContact'] }])
-                }
-                placeholder="contact@example.org"
-                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={contact.emails !== undefined}
+                  onChange={e => up('emails', e.target.checked ? [{ value: '', roles: ['pointOfContact'] }] : undefined)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Email
+              </label>
+              {contact.emails !== undefined && (
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => up('emails', [{ value: e.target.value, roles: ['pointOfContact'] }])}
+                  placeholder="contact@example.org"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">Phone</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={e =>
-                  up('phones', [{ value: e.target.value, roles: ['voice'] }])
-                }
-                placeholder="+44 1632 960000"
-                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={contact.phones !== undefined}
+                  onChange={e => up('phones', e.target.checked ? [{ value: '', roles: ['voice'] }] : undefined)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Phone
+              </label>
+              {contact.phones !== undefined && (
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={e => up('phones', [{ value: e.target.value, roles: ['voice'] }])}
+                  placeholder="+44 1632 960000"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={countryIncluded}
+                  onChange={e => toggleAddressField('country', e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
                 Country{' '}
                 <span className="font-normal text-gray-400">(ISO 3166-1 alpha-3)</span>
               </label>
-              <CountryPicker
-                value={country}
-                onChange={val =>
-                  up('addresses', [{ ...contact.addresses?.[0], country: val }])
-                }
-              />
+              {countryIncluded && (
+                <CountryPicker
+                  value={(addr0 as { country?: string }).country || ''}
+                  onChange={val => up('addresses', [{ ...addr0, country: val }])}
+                />
+              )}
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">City</label>
-              <input
-                type="text"
-                value={contact.addresses?.[0]?.city || ''}
-                onChange={e =>
-                  up('addresses', [{ ...contact.addresses?.[0], city: e.target.value }])
-                }
-                placeholder="City"
-                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={cityIncluded}
+                  onChange={e => toggleAddressField('city', e.target.checked)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                City
+              </label>
+              {cityIncluded && (
+                <input
+                  type="text"
+                  value={(addr0 as { city?: string }).city || ''}
+                  onChange={e => up('addresses', [{ ...addr0, city: e.target.value }])}
+                  placeholder="City"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
           </div>
 
@@ -194,14 +229,24 @@ function ContactCard({
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-600 mb-1 block">Contact instructions</label>
-            <textarea
-              value={contact.contactInstructions || ''}
-              onChange={e => up('contactInstructions', e.target.value)}
-              rows={2}
-              placeholder="How to get in touch (e.g. email preferred, office hours)"
-              className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-            />
+            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={contact.contactInstructions !== undefined}
+                onChange={e => up('contactInstructions', e.target.checked ? '' : undefined)}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              Contact instructions
+            </label>
+            {contact.contactInstructions !== undefined && (
+              <textarea
+                value={contact.contactInstructions}
+                onChange={e => up('contactInstructions', e.target.value)}
+                rows={2}
+                placeholder="How to get in touch (e.g. email preferred, office hours)"
+                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              />
+            )}
           </div>
 
           <div>
