@@ -25,7 +25,10 @@ export function buildRecord(form: FormState): Wcmp2Record {
   if (form.version) properties.version = form.version;
   if (form.externalIds.length > 0) properties.externalIds = form.externalIds;
   if (form.rights) properties.rights = form.rights;
-  if (form.status?.id) properties.status = form.status;
+  if (form.status?.id) {
+    const { id, title, url } = form.status;
+    properties.status = { id, ...(title && { title }), ...(url && { url }) };
+  }
 
   let time: TimeExtent = null;
   if (form.timeType === 'date' && form.timeDate) {
