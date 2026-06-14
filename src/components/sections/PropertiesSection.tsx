@@ -142,28 +142,44 @@ export function PropertiesSection({ form, update, resourceTypes = RESOURCE_TYPES
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">
-                Title <span className="font-normal text-gray-400">(optional)</span>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.status?.title !== undefined}
+                  onChange={e => update('status', { ...form.status, title: e.target.checked ? '' : undefined })}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Title
               </label>
-              <input
-                type="text"
-                value={form.status?.title || ''}
-                onChange={e => update('status', { ...form.status, title: e.target.value })}
-                placeholder="Human-readable label"
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {form.status?.title !== undefined && (
+                <input
+                  type="text"
+                  value={form.status.title}
+                  onChange={e => update('status', { ...form.status, title: e.target.value })}
+                  placeholder="Human-readable label"
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
             <div>
-              <label className="text-xs font-medium text-gray-600 mb-1 block">
-                URL <span className="font-normal text-gray-400">(optional)</span>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.status?.url !== undefined}
+                  onChange={e => update('status', { ...form.status, url: e.target.checked ? '' : undefined })}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                URL
               </label>
-              <input
-                type="text"
-                value={form.status?.url || ''}
-                onChange={e => update('status', { ...form.status, url: e.target.value })}
-                placeholder="https://codes.wmo.int/wis/operational"
-                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              {form.status?.url !== undefined && (
+                <input
+                  type="text"
+                  value={form.status.url}
+                  onChange={e => update('status', { ...form.status, url: e.target.value })}
+                  placeholder="https://codes.wmo.int/wis/operational-status/operational"
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
             </div>
           </div>
         </div>
