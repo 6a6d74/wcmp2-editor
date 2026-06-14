@@ -7,6 +7,7 @@ A single-page web application for creating, editing, and publishing metadata rec
 ## Features
 
 - **Guided form** covering all required and optional WCMP2 fields, with inline documentation and validation hints
+- **Operational status picker** — the optional `status` field in Core Properties exposes preset buttons for all five values in the [WMO operational status code list](https://codes.wmo.int/wis/operational-status) (experimental, not-available, operational, pre-operational, scientific). Selecting a preset pre-fills the `id`, `title`, and `url` fields; all three can be overridden manually for custom status vocabularies. Note: the operational status code list will be formally published after INFCOM-4 in November 2026
 - **Controlled vocabulary pickers** sourced live from the [WMO Codes Registry](https://codes.wmo.int) (Earth System Disciplines, resource types) and the [WCMP2 codelists repository](https://github.com/wmo-im/wcmp2-codelists) (contact roles, link types), with static fallbacks when offline. Contact roles are restricted to the five defined in the WCMP2 standard: `licensor`, `producer`, `processor`, `host`, and `publisher`. Link relations are drawn from the full [IANA link relations registry](https://www.iana.org/assignments/link-relations/) (118 entries, embedded at build time as the IANA endpoint does not support CORS) plus any WCMP2-specific additions fetched dynamically at runtime. Additional concept vocabularies — including GRIB2 Parameters, BUFR4 Elements, and [CF Standard Names](https://vocab.nerc.ac.uk/collection/P07/current) — are offered as quick-select suggestions in the custom vocabulary picker; a **View vocabulary ↗** link opens the selected vocabulary in a new tab for browsing
 - **Link relation autocomplete** — the relation field in each link uses a combobox: type to filter the list to prefix matches, with inline autocomplete to the first result; use arrow keys to navigate, Enter or click to select
 - **Country picker** — searchable autocomplete for ISO 3166-1 alpha-3 country codes in contact addresses; filter by country name or code prefix
@@ -38,6 +39,15 @@ WCMP2 records are [GeoJSON Features](https://datatracker.ietf.org/doc/html/rfc79
 | `geometry` | Spatial extent in WGS84, or `null` |
 | `time` | Temporal extent (date / timestamp / interval), or `null`. May include `resolution` (ISO 8601 duration) |
 | `links` | At least one access or information link |
+
+The following fields are optional but supported by the editor:
+
+| Field | Description |
+|---|---|
+| `properties.status` | Operational status of the dataset. Accepts an object with `id`, `title`, and `url`. Preset values are drawn from the [WMO operational status code list](https://codes.wmo.int/wis/operational-status) (`experimental`, `not-available`, `operational`, `pre-operational`, `scientific`). Note: this code list will be formally published after INFCOM-4 in November 2026. |
+| `properties.version` | Version identifier for the dataset |
+| `properties.keywords` | Free-text keyword tags |
+| `properties.rights` | Rights and usage statement |
 
 Timestamps for `properties.created` and `properties.updated` are stored and exported as full ISO 8601 UTC timestamps (`YYYY-MM-DDThh:mm:ssZ`).
 
