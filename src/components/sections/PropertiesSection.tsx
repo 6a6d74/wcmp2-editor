@@ -1,5 +1,5 @@
 import type { FormState } from '../../hooks/useWcmp2Form';
-import { RESOURCE_TYPES } from '../../utils/vocabularies';
+import { RESOURCE_TYPES, OPERATIONAL_STATUSES } from '../../utils/vocabularies';
 import { SectionWrapper } from './SectionWrapper';
 
 interface Props {
@@ -96,14 +96,76 @@ export function PropertiesSection({ form, update, resourceTypes = RESOURCE_TYPES
 
         {/* Status */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-          <input
-            type="text"
-            value={form.status?.id || ''}
-            onChange={e => update('status', { ...form.status, id: e.target.value })}
-            placeholder="e.g. operational, deprecated, experimental"
-            className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+
+          {/* Preset buttons */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            {OPERATIONAL_STATUSES.map(s => {
+              const selected = form.status?.id === s.id;
+              return (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() =>
+                    update('status', selected ? {} : { ...form.status, id: s.id, url: s.url })
+                  }
+                  className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
+                    selected
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-blue-400 hover:bg-blue-50'
+                  }`}
+                >
+                  {s.title}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Description of selected preset */}
+          {(() => {
+            const preset = OPERATIONAL_STATUSES.find(s => s.id === form.status?.id);
+            return preset ? (
+              <p className="text-xs text-gray-500 italic mb-3">{preset.description}</p>
+            ) : null;
+          })()}
+
+          {/* Editable fields */}
+          <div className="space-y-2">
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">ID</label>
+              <input
+                type="text"
+                value={form.status?.id || ''}
+                onChange={e => update('status', { ...form.status, id: e.target.value })}
+                placeholder="e.g. operational"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">
+                Title <span className="font-normal text-gray-400">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={form.status?.title || ''}
+                onChange={e => update('status', { ...form.status, title: e.target.value })}
+                placeholder="Human-readable label"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 mb-1 block">
+                URL <span className="font-normal text-gray-400">(optional)</span>
+              </label>
+              <input
+                type="text"
+                value={form.status?.url || ''}
+                onChange={e => update('status', { ...form.status, url: e.target.value })}
+                placeholder="https://codes.wmo.int/wis/operational"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </SectionWrapper>

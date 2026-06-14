@@ -183,6 +183,41 @@ export const MIME_TYPES = [
   'image/tiff',
 ];
 
+// Source: https://github.com/wmo-im/wcmp2-codelists/blob/INFCOM-4/codelists/operational-status.csv
+// URLs constructed as https://codes.wmo.int/wis/<id> (not yet published at their final locations)
+export const OPERATIONAL_STATUSES = [
+  {
+    id: 'experimental',
+    title: 'Experimental',
+    description: 'First step in the process of becoming operational; part of a development and production chain that provides operational data.',
+    url: 'https://codes.wmo.int/wis/experimental',
+  },
+  {
+    id: 'not-available',
+    title: 'Not Available',
+    description: 'Information on the operational status is not available or not provided.',
+    url: 'https://codes.wmo.int/wis/not-available',
+  },
+  {
+    id: 'operational',
+    title: 'Operational',
+    description: 'Continuously evaluated and validated; generated on a continuous basis with a temporal perspective under the responsibility of an authority.',
+    url: 'https://codes.wmo.int/wis/operational',
+  },
+  {
+    id: 'pre-operational',
+    title: 'Pre-Operational',
+    description: 'Under review for becoming the next operational delivery; intermediate step between Experimental and Operational.',
+    url: 'https://codes.wmo.int/wis/pre-operational',
+  },
+  {
+    id: 'scientific',
+    title: 'Scientific',
+    description: 'Purely scientific products from scientific projects, usually with a limited temporal perspective.',
+    url: 'https://codes.wmo.int/wis/scientific',
+  },
+];
+
 // Source: https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline
 export const EARTH_SYSTEM_DISCIPLINES = [
   { id: 'atmospheric-composition', title: 'Atmospheric Composition' },
