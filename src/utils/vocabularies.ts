@@ -184,37 +184,43 @@ export const MIME_TYPES = [
 ];
 
 // Source: https://github.com/wmo-im/wcmp2-codelists/blob/INFCOM-4/codelists/operational-status.csv
-// URLs constructed as https://codes.wmo.int/wis/<id> (not yet published at their final locations)
+// URLs constructed as https://codes.wmo.int/wis/operational-status/<id>
+// Note: this code list will be formally published after INFCOM-4 (November 2026)
 export const OPERATIONAL_STATUSES = [
   {
     id: 'experimental',
     title: 'Experimental',
+    presetTitle: 'First step towards operational; part of a development and production chain',
     description: 'First step in the process of becoming operational; part of a development and production chain that provides operational data.',
-    url: 'https://codes.wmo.int/wis/experimental',
+    url: 'https://codes.wmo.int/wis/operational-status/experimental',
   },
   {
     id: 'not-available',
     title: 'Not Available',
+    presetTitle: 'Operational status is not available or not provided',
     description: 'Information on the operational status is not available or not provided.',
-    url: 'https://codes.wmo.int/wis/not-available',
+    url: 'https://codes.wmo.int/wis/operational-status/not-available',
   },
   {
     id: 'operational',
     title: 'Operational',
+    presetTitle: 'Continuously evaluated, validated, and produced under authority responsibility',
     description: 'Continuously evaluated and validated; generated on a continuous basis with a temporal perspective under the responsibility of an authority.',
-    url: 'https://codes.wmo.int/wis/operational',
+    url: 'https://codes.wmo.int/wis/operational-status/operational',
   },
   {
     id: 'pre-operational',
     title: 'Pre-Operational',
+    presetTitle: 'Under review for promotion to operational; between experimental and operational',
     description: 'Under review for becoming the next operational delivery; intermediate step between Experimental and Operational.',
-    url: 'https://codes.wmo.int/wis/pre-operational',
+    url: 'https://codes.wmo.int/wis/operational-status/pre-operational',
   },
   {
     id: 'scientific',
     title: 'Scientific',
+    presetTitle: 'Scientific project output, usually with a limited temporal perspective',
     description: 'Purely scientific products from scientific projects, usually with a limited temporal perspective.',
-    url: 'https://codes.wmo.int/wis/scientific',
+    url: 'https://codes.wmo.int/wis/operational-status/scientific',
   },
 ];
 

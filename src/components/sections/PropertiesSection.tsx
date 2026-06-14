@@ -107,7 +107,7 @@ export function PropertiesSection({ form, update, resourceTypes = RESOURCE_TYPES
                   key={s.id}
                   type="button"
                   onClick={() =>
-                    update('status', selected ? {} : { ...form.status, id: s.id, url: s.url })
+                    update('status', selected ? {} : { ...form.status, id: s.id, title: s.presetTitle, url: s.url })
                   }
                   className={`px-3 py-1.5 rounded-md border text-sm transition-colors ${
                     selected
