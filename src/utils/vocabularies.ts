@@ -183,17 +183,14 @@ export const MIME_TYPES = [
   'image/tiff',
 ];
 
+// Source: https://codes.wmo.int/wis/topic-hierarchy/earth-system-discipline
 export const EARTH_SYSTEM_DISCIPLINES = [
-  { id: 'atmosphericComposition', title: 'Atmospheric Composition' },
-  { id: 'atmosphericDynamics', title: 'Atmospheric Dynamics' },
-  { id: 'atmosphericThermodynamics', title: 'Atmospheric Thermodynamics' },
+  { id: 'atmospheric-composition', title: 'Atmospheric Composition' },
+  { id: 'climate', title: 'Climate' },
   { id: 'cryosphere', title: 'Cryosphere' },
-  { id: 'hydrosphere', title: 'Hydrosphere' },
-  { id: 'landSurface', title: 'Land Surface' },
-  { id: 'oceanography', title: 'Oceanography' },
-  { id: 'outerSpace', title: 'Outer Space' },
-  { id: 'space', title: 'Space' },
-  { id: 'terrestrialEcosystems', title: 'Terrestrial Ecosystems' },
+  { id: 'hydrology', title: 'Hydrology' },
+  { id: 'ocean', title: 'Ocean' },
+  { id: 'space-weather', title: 'Space Weather' },
   { id: 'weather', title: 'Weather' },
 ];
 
