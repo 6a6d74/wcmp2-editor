@@ -67,11 +67,14 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
 
   const addCustomConcept = () => {
     if (!customScheme || !customConceptId) return;
+    const trimmedId = customConceptId.trim();
+    if (!trimmedId) return;
+    const encodedId = trimmedId.split('/').map(encodeURIComponent).join('/');
     const existingIdx = form.themes.findIndex(t => t.scheme === customScheme);
     const newConcept = {
-      id: customConceptId,
+      id: trimmedId,
       title: customConceptTitle || undefined,
-      url: `${customScheme}/${customConceptId}`,
+      url: `${customScheme}/${encodedId}`,
     };
     const newThemes = [...form.themes];
     if (existingIdx >= 0) {
