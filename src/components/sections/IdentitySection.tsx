@@ -11,6 +11,10 @@ function generateLocalId() {
   return `rec-${Date.now().toString(36)}`;
 }
 
+// IRA T.50 (ASCII) — no spaces, semicolons, or characters outside 0x21–0x7E
+const sanitizeLocalId = (v: string) => v.replace(/[ ;]|[^\x21-\x7E]/g, '');
+const localIdValid = (v: string) => v.length === 0 || /^[\x21-\x7E]+$/.test(v) && !/[ ;]/.test(v);
+
 export function IdentitySection({ form, update }: Props) {
   return (
     <SectionWrapper id="identity" title="Identity" required>
@@ -52,9 +56,13 @@ export function IdentitySection({ form, update }: Props) {
             <input
               type="text"
               value={form.localId}
-              onChange={e => update('localId', e.target.value)}
+              onChange={e => update('localId', sanitizeLocalId(e.target.value))}
               placeholder="e.g. synop-canada-2024"
-              className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className={`flex-1 border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 ${
+                !localIdValid(form.localId)
+                  ? 'border-red-400 focus:ring-red-400 bg-red-50'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
             />
             <button
               type="button"
@@ -65,6 +73,15 @@ export function IdentitySection({ form, update }: Props) {
               <RefreshCw size={15} />
             </button>
           </div>
+          {!localIdValid(form.localId) ? (
+            <p className="text-xs text-red-600 mt-1">
+              Must be IRA T.50 (ASCII) with no spaces, semicolons, or accented characters.
+            </p>
+          ) : (
+            <p className="text-xs text-gray-400 mt-1">
+              ASCII only — no spaces, semicolons, or accented characters.
+            </p>
+          )}
         </div>
       </div>
 
