@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { Plus, Trash2, Search, Pencil } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { Theme } from '../../types/wcmp2';
 import { EARTH_SYSTEM_DISCIPLINE_SCHEME } from '../../utils/vocabularies';
@@ -94,14 +94,36 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
     update('themes', form.themes.filter(t => t.scheme !== schemeUrl));
   };
 
-  const removeConcept = (schemeUrl: string, conceptId: string) => {
+  const removeConcept = (schemeUrl: string, conceptIdx: number) => {
     const newThemes = form.themes
       .map(t =>
         t.scheme === schemeUrl
-          ? { ...t, concepts: t.concepts.filter(c => c.id !== conceptId) }
+          ? { ...t, concepts: t.concepts.filter((_, i) => i !== conceptIdx) }
           : t
       )
       .filter(t => t.concepts.length > 0);
+    update('themes', newThemes);
+  };
+
+  const updateConcept = (
+    schemeUrl: string,
+    conceptIdx: number,
+    field: 'id' | 'title',
+    value: string,
+  ) => {
+    const newThemes = form.themes.map(t => {
+      if (t.scheme !== schemeUrl) return t;
+      const newConcepts = t.concepts.map((c, i) => {
+        if (i !== conceptIdx) return c;
+        if (field === 'id') {
+          const trimmed = value.trim();
+          const encodedId = trimmed.split('/').map(encodeURIComponent).join('/');
+          return { ...c, id: value, url: trimmed ? `${schemeUrl}/${encodedId}` : c.url };
+        }
+        return { ...c, title: value || undefined };
+      });
+      return { ...t, concepts: newConcepts };
+    });
     update('themes', newThemes);
   };
 
@@ -167,27 +189,8 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
           <div className="text-sm font-medium text-gray-700">Selected Themes</div>
           {form.themes.map(theme => (
             <div key={theme.scheme} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-xs text-gray-500 font-mono truncate">{theme.scheme}</div>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {theme.concepts.map(c => (
-                      <span
-                        key={c.id}
-                        className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full"
-                      >
-                        {c.title || c.id}
-                        <button
-                          type="button"
-                          onClick={() => removeConcept(theme.scheme, c.id)}
-                          className="text-blue-500 hover:text-blue-800"
-                        >
-                          ×
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </div>
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div className="text-xs text-gray-500 font-mono truncate">{theme.scheme}</div>
                 <button
                   type="button"
                   onClick={() => removeTheme(theme.scheme)}
@@ -195,6 +198,40 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
                 >
                   <Trash2 size={14} />
                 </button>
+              </div>
+              <div className="space-y-1">
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-1 px-1">
+                  <span className="text-xs text-gray-400 font-medium flex items-center gap-1">
+                    <Pencil size={10} /> Concept ID
+                  </span>
+                  <span className="text-xs text-gray-400 font-medium">Title</span>
+                  <span />
+                </div>
+                {theme.concepts.map((c, ci) => (
+                  <div key={ci} className="grid grid-cols-[1fr_1fr_auto] gap-1 items-center">
+                    <input
+                      type="text"
+                      value={c.id}
+                      onChange={e => updateConcept(theme.scheme, ci, 'id', e.target.value)}
+                      className="border border-gray-200 rounded px-2 py-1 text-xs font-mono bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Concept ID"
+                    />
+                    <input
+                      type="text"
+                      value={c.title || ''}
+                      onChange={e => updateConcept(theme.scheme, ci, 'title', e.target.value)}
+                      className="border border-gray-200 rounded px-2 py-1 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Title (optional)"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeConcept(theme.scheme, ci)}
+                      className="text-red-400 hover:text-red-600 p-0.5"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
