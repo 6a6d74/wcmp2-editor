@@ -35,6 +35,13 @@ function getCurrentShapeType(drawnItems: L.FeatureGroup): ShapeType {
   return 'polygons';
 }
 
+const r5 = (n: number) => Math.round(n * 1e5) / 1e5;
+
+// Round every number in an arbitrarily nested coordinate array to 5 decimal places
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const roundCoords = (coords: any): any =>
+  typeof coords[0] === 'number' ? coords.map(r5) : coords.map(roundCoords);
+
 function computeGeometry(drawnItems: L.FeatureGroup): GeoJSON.Geometry | null {
   const layers = drawnItems.getLayers();
   if (layers.length === 0) return null;
@@ -45,7 +52,7 @@ function computeGeometry(drawnItems: L.FeatureGroup): GeoJSON.Geometry | null {
   if (markers.length > 0) {
     const coords = markers.map(m => {
       const ll = m.getLatLng();
-      return [ll.lng, ll.lat] as GeoJSON.Position;
+      return [r5(ll.lng), r5(ll.lat)] as GeoJSON.Position;
     });
     if (coords.length === 1) return { type: 'Point', coordinates: coords[0] };
     return { type: 'MultiPoint', coordinates: coords };
@@ -54,7 +61,7 @@ function computeGeometry(drawnItems: L.FeatureGroup): GeoJSON.Geometry | null {
   if (polys.length > 0) {
     type PolyFeature = { geometry: GeoJSON.Polygon };
     const allCoords = polys.map(
-      p => ((p as unknown as { toGeoJSON: () => PolyFeature }).toGeoJSON()).geometry.coordinates
+      p => roundCoords(((p as unknown as { toGeoJSON: () => PolyFeature }).toGeoJSON()).geometry.coordinates) as GeoJSON.Position[][]
     );
     if (allCoords.length === 1) return { type: 'Polygon', coordinates: allCoords[0] };
     return { type: 'MultiPolygon', coordinates: allCoords };
