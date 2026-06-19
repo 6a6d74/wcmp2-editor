@@ -49,7 +49,7 @@ const DEFAULT_ADDITIONAL_EXTENTS = JSON.stringify(
     temporal: {
       interval: [['2000-01-01T00:00:00Z', '..']],
       resolution: 'PT1H',
-      trs: 'http://www.opengis.net/def/uom/ISO-8601/0/Gregorian',
+      trs: 'http://www.opengis.net/def/trs/ISO-8601',
     },
   },
   null,
