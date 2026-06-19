@@ -68,7 +68,7 @@ export function validateAndParse(raw: unknown): ParseResult {
   }
 
   const policy = props['wmo:dataPolicy'];
-  if (policy !== 'core' && policy !== 'recommended') {
+  if (props['type'] === 'dataset' && policy !== 'core' && policy !== 'recommended') {
     errors.push('properties["wmo:dataPolicy"] must be "core" or "recommended".');
   }
 
