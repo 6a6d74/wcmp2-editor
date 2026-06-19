@@ -162,6 +162,15 @@ export function OptionalSection({ form, update }: Props) {
             <span className="text-xs font-normal text-gray-400">(improves KPI score)</span>
           </label>
 
+          {form.externalIds.length > 0 && !form.links.some(l => l.rel === 'cite-as') && (
+            <div className="flex items-start gap-2 mb-3 px-3 py-2 bg-amber-50 border border-amber-200 rounded-md text-xs text-amber-800">
+              <span className="mt-0.5">💡</span>
+              <span>
+                Add a link with relation <strong>cite-as</strong> in the Links section to indicate the preferred citation URL for this record.
+              </span>
+            </div>
+          )}
+
           {form.externalIds.length > 0 && (
             <div className="space-y-1.5 mb-3">
               {form.externalIds.map((pid, i) => (
