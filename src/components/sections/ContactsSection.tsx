@@ -20,7 +20,7 @@ function emptyContact(): Contact {
   };
 }
 
-const emailValid = (v: string) => !v || /^[a-zA-Z0-9_%+-]+(\.[a-zA-Z0-9_%+-]+)*@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v);
+const emailValid = (v: string) => !v || /^[a-zA-Z0-9_%+-]+(\.[a-zA-Z0-9_%+-]+)*@([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/.test(v);
 
 // Must start with +, then digits only (spaces/dashes/parens allowed for readability),
 // with at least 7 digits total (country code + subscriber number).
