@@ -292,6 +292,16 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
             {customScheme && !isValidHttpUrl(customScheme) && (
               <p className="text-xs text-red-600 mt-1">Scheme URL must be a valid http:// or https:// URL.</p>
             )}
+            {customScheme === 'https://codes.wmo.int/bufr4/b' && (
+              <p className="text-xs text-blue-600 mt-1">
+                BUFR4 elements are described in sub-tables. Browse the vocabulary to find the correct
+                sub-table URL (e.g.{' '}
+                <a href="https://codes.wmo.int/bufr4/b/12" target="_blank" rel="noreferrer" className="underline">
+                  https://codes.wmo.int/bufr4/b/12
+                </a>
+                ) or include the sub-table in the Concept ID below (e.g. <code>12/001</code>).
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
