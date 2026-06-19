@@ -351,6 +351,7 @@ function ContactCard({
                 <LinkRow
                   key={li}
                   link={link}
+                  showSecurity={false}
                   onChange={updated => {
                     const next = [...(contact.links || [])];
                     next[li] = updated;

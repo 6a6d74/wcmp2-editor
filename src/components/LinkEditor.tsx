@@ -178,11 +178,13 @@ export function LinkRow({
   onChange,
   onRemove,
   linkRelations = LINK_RELATIONS,
+  showSecurity = true,
 }: {
   link: WcmpLink;
   onChange: (link: WcmpLink) => void;
   onRemove: () => void;
   linkRelations?: VocabItem[];
+  showSecurity?: boolean;
 }) {
   const [testResult, setTestResult] = useState<TestResult>({ status: 'idle' });
   const [securityEnabled, setSecurityEnabled] = useState(!!link.security);
@@ -301,7 +303,7 @@ export function LinkRow({
         </div>
       )}
 
-      <div>
+      {showSecurity && <div>
         <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer select-none">
           <input
             type="checkbox"
@@ -361,7 +363,7 @@ export function LinkRow({
             </div>
           );
         })()}
-      </div>
+      </div>}
     </div>
   );
 }
