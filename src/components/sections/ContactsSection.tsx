@@ -169,7 +169,9 @@ function ContactCard({
                     <p className="text-xs text-red-600 mt-1">
                       {!phone.startsWith('+')
                         ? 'Must include an international dialling code (e.g. +44 1632 960000).'
-                        : 'Phone number is too short — include the full number after the country code.'}
+                        : !/^\+[\d\s\-().]+$/.test(phone)
+                          ? 'Phone number must contain only numbers.'
+                          : 'Phone number is too short — include the full number after the country code.'}
                     </p>
                   )}
                 </>
