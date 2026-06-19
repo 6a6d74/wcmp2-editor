@@ -245,16 +245,11 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
               {/* type */}
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">MIME type</label>
-                <select
+                <RelationCombobox
                   value={link.type || ''}
-                  onChange={e => updateLink(i, 'type', e.target.value)}
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                >
-                  <option value="">— select —</option>
-                  {MIME_TYPES.map(m => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </select>
+                  onChange={v => updateLink(i, 'type', v)}
+                  options={MIME_TYPES.map(m => ({ id: m, title: m }))}
+                />
               </div>
 
               {/* title */}
