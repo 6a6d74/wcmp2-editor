@@ -310,7 +310,7 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
             </div>
 
             {/* MQTT channel field */}
-            {link.href?.startsWith('mqtt') && (
+            {/^(mqtt|mqtts|ws|wss):\/\//i.test(link.href || '') && (
               <div>
                 <label className="text-xs font-medium text-gray-600 mb-1 block">MQTT channel</label>
                 <input
