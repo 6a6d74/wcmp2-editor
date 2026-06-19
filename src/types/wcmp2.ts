@@ -31,6 +31,7 @@ export interface WcmpLink {
   title?: string;
   hreflang?: string;
   channel?: string;
+  security?: Record<string, unknown>;
 }
 
 export interface ExternalId {

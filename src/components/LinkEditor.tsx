@@ -132,6 +132,43 @@ function mqttChannelError(v: string): string | null {
   return null;
 }
 
+const VALID_SECURITY_TYPES = ['http', 'apiKey', 'openIdConnect', 'oauth2'];
+
+const DEFAULT_SECURITY_JSON = JSON.stringify(
+  {
+    default: {
+      type: 'http',
+      scheme: 'basic',
+      description: 'Please contact the data provider for accessing this secured resource.',
+    },
+  },
+  null,
+  2,
+);
+
+function validateSecurityJson(json: string): string | null {
+  if (!json.trim()) return 'Security object cannot be empty.';
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    return 'Invalid JSON — check syntax.';
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return 'Security must be a JSON object containing named security schemes.';
+  }
+  for (const [name, scheme] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!scheme || typeof scheme !== 'object' || Array.isArray(scheme)) {
+      return `Security scheme "${name}" must be an object.`;
+    }
+    const t = (scheme as Record<string, unknown>)['type'];
+    if (!VALID_SECURITY_TYPES.includes(t as string)) {
+      return `Security scheme "${name}": type must be one of: "http", "apiKey", "openIdConnect", "oauth2".`;
+    }
+  }
+  return null;
+}
+
 export function emptyLink(): WcmpLink {
   return { rel: '', href: '', type: '', title: '' };
 }
@@ -148,6 +185,10 @@ export function LinkRow({
   linkRelations?: VocabItem[];
 }) {
   const [testResult, setTestResult] = useState<TestResult>({ status: 'idle' });
+  const [securityEnabled, setSecurityEnabled] = useState(!!link.security);
+  const [securityJson, setSecurityJson] = useState(
+    link.security ? JSON.stringify(link.security, null, 2) : '',
+  );
 
   const update = (field: keyof WcmpLink, value: string) => {
     onChange({ ...link, [field]: value });
@@ -259,6 +300,68 @@ export function LinkRow({
           )}
         </div>
       )}
+
+      <div>
+        <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={securityEnabled}
+            onChange={e => {
+              const checked = e.target.checked;
+              setSecurityEnabled(checked);
+              if (checked) {
+                setSecurityJson(DEFAULT_SECURITY_JSON);
+                onChange({ ...link, security: JSON.parse(DEFAULT_SECURITY_JSON) });
+              } else {
+                onChange({ ...link, security: undefined });
+              }
+            }}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          Access control (security)
+        </label>
+        {securityEnabled && (() => {
+          const secError = validateSecurityJson(securityJson);
+          return (
+            <div className="mt-2">
+              <textarea
+                value={securityJson}
+                onChange={e => {
+                  const val = e.target.value;
+                  setSecurityJson(val);
+                  try {
+                    const parsed = JSON.parse(val);
+                    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                      onChange({ ...link, security: parsed as Record<string, unknown> });
+                    }
+                  } catch { /* leave link.security as-is until JSON is valid */ }
+                }}
+                rows={8}
+                spellCheck={false}
+                className={`w-full font-mono text-xs border rounded px-2.5 py-2 focus:outline-none focus:ring-2 resize-y ${
+                  secError
+                    ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                    : 'border-gray-300 focus:ring-blue-500'
+                }`}
+              />
+              {secError && (
+                <p className="text-xs text-red-600 mt-1">{secError}</p>
+              )}
+              <p className="text-xs text-blue-600 mt-1">
+                Access control (security) properties must implement one of the OpenAPI security schemes — see{' '}
+                <a
+                  href="https://spec.openapis.org/oas/v3.1.1.html#security-scheme-object-0"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  https://spec.openapis.org/oas/v3.1.1.html#security-scheme-object-0
+                </a>.
+              </p>
+            </div>
+          );
+        })()}
+      </div>
     </div>
   );
 }
