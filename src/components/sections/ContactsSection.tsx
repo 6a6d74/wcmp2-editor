@@ -190,6 +190,26 @@ function ContactCard({
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
                 <input
                   type="checkbox"
+                  checked={contact.identifier !== undefined}
+                  onChange={e => up('identifier', e.target.checked ? '' : undefined)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Identifier
+              </label>
+              {contact.identifier !== undefined && (
+                <input
+                  type="text"
+                  value={contact.identifier}
+                  onChange={e => up('identifier', e.target.value)}
+                  placeholder="Unique identifier for this contact"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              )}
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
                   checked={contact.position !== undefined}
                   onChange={e => up('position', e.target.checked ? '' : undefined)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -206,6 +226,9 @@ function ContactCard({
                 />
               )}
             </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
                 <input
@@ -226,27 +249,26 @@ function ContactCard({
                 />
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={contact.contactInstructions !== undefined}
-                onChange={e => up('contactInstructions', e.target.checked ? '' : undefined)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              Contact instructions
-            </label>
-            {contact.contactInstructions !== undefined && (
-              <textarea
-                value={contact.contactInstructions}
-                onChange={e => up('contactInstructions', e.target.value)}
-                rows={2}
-                placeholder="How to get in touch (e.g. email preferred, office hours)"
-                className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              />
-            )}
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={contact.contactInstructions !== undefined}
+                  onChange={e => up('contactInstructions', e.target.checked ? '' : undefined)}
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                Contact instructions
+              </label>
+              {contact.contactInstructions !== undefined && (
+                <textarea
+                  value={contact.contactInstructions}
+                  onChange={e => up('contactInstructions', e.target.value)}
+                  rows={2}
+                  placeholder="How to get in touch (e.g. email preferred, office hours)"
+                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              )}
+            </div>
           </div>
 
           <div>
