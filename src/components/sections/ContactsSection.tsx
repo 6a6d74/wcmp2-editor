@@ -20,6 +20,17 @@ function emptyContact(): Contact {
   };
 }
 
+const emailValid = (v: string) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+
+// Must start with +, then digits only (spaces/dashes/parens allowed for readability),
+// with at least 7 digits total (country code + subscriber number).
+const phoneValid = (v: string) => {
+  if (!v) return true;
+  if (!v.startsWith('+')) return false;
+  const digits = v.replace(/\D/g, '');
+  return digits.length >= 7 && /^\+[\d\s\-().]+$/.test(v);
+};
+
 function ContactCard({
   contact,
   index,
@@ -113,13 +124,22 @@ function ContactCard({
                 Email
               </label>
               {contact.emails !== undefined && (
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => up('emails', [{ value: e.target.value, roles: ['pointOfContact'] }])}
-                  placeholder="contact@example.org"
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => up('emails', [{ value: e.target.value, roles: ['pointOfContact'] }])}
+                    placeholder="contact@example.org"
+                    className={`w-full border rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                      !emailValid(email)
+                        ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                  />
+                  {!emailValid(email) && (
+                    <p className="text-xs text-red-600 mt-1">Enter a valid email address (e.g. user@example.org).</p>
+                  )}
+                </>
               )}
             </div>
             <div>
@@ -133,13 +153,26 @@ function ContactCard({
                 Phone
               </label>
               {contact.phones !== undefined && (
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={e => up('phones', [{ value: e.target.value, roles: ['voice'] }])}
-                  placeholder="+44 1632 960000"
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={e => up('phones', [{ value: e.target.value, roles: ['voice'] }])}
+                    placeholder="+44 1632 960000"
+                    className={`w-full border rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                      !phoneValid(phone)
+                        ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                  />
+                  {!phoneValid(phone) && (
+                    <p className="text-xs text-red-600 mt-1">
+                      {!phone.startsWith('+')
+                        ? 'Must include an international dialling code (e.g. +44 1632 960000).'
+                        : 'Phone number is too short — include the full number after the country code.'}
+                    </p>
+                  )}
+                </>
               )}
             </div>
           </div>
