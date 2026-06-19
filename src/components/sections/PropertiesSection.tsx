@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import { RESOURCE_TYPES, OPERATIONAL_STATUSES } from '../../utils/vocabularies';
 import { SectionWrapper } from './SectionWrapper';
+import { TestBadge, isHttpUrl, isValidHttpUrl, testUrl, type TestResult } from '../UrlTestBadge';
 
 interface Props {
   form: FormState;
@@ -11,6 +13,18 @@ interface Props {
 export function PropertiesSection({ form, update, resourceTypes = RESOURCE_TYPES }: Props) {
   const titleLen = form.title.length;
   const descLen = form.description.length;
+  const [statusUrlTest, setStatusUrlTest] = useState<TestResult>({ status: 'idle' });
+
+  const handleStatusUrlChange = (url: string) => {
+    update('status', { ...form.status, url });
+    setStatusUrlTest({ status: 'idle' });
+  };
+
+  const testStatusUrl = async () => {
+    const url = form.status?.url || '';
+    setStatusUrlTest({ status: 'loading' });
+    setStatusUrlTest(await testUrl(url));
+  };
 
   return (
     <SectionWrapper id="properties" title="Core Properties" required>
@@ -172,13 +186,40 @@ export function PropertiesSection({ form, update, resourceTypes = RESOURCE_TYPES
                 URL
               </label>
               {form.status?.url !== undefined && (
-                <input
-                  type="text"
-                  value={form.status.url}
-                  onChange={e => update('status', { ...form.status, url: e.target.value })}
-                  placeholder="https://codes.wmo.int/wis/operational-status/operational"
-                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <>
+                  <div className="flex gap-2 items-center">
+                    <input
+                      type="text"
+                      value={form.status.url}
+                      onChange={e => handleStatusUrlChange(e.target.value)}
+                      placeholder="https://codes.wmo.int/wis/operational-status/operational"
+                      className={`flex-1 border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                        form.status.url && !isValidHttpUrl(form.status.url)
+                          ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={testStatusUrl}
+                      disabled={!isHttpUrl(form.status.url || '') || statusUrlTest.status === 'loading'}
+                      className="px-2.5 py-1.5 text-xs rounded border border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+                    >
+                      Test
+                    </button>
+                  </div>
+                  {form.status.url && !isValidHttpUrl(form.status.url) && (
+                    <p className="text-xs text-red-600 mt-1">URL must be a valid http:// or https:// URL.</p>
+                  )}
+                  {statusUrlTest.status !== 'idle' && (
+                    <div className="mt-1">
+                      <TestBadge status={statusUrlTest.status} code={statusUrlTest.code} />
+                      {statusUrlTest.status === 'failed' && (
+                        <span className="text-xs text-gray-400 ml-1">— the server may not allow browser requests (CORS)</span>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

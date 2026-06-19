@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, X, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { ExternalId } from '../../types/wcmp2';
 import { SectionWrapper } from './SectionWrapper';
+import { TestBadge, isHttpUrl, isValidHttpUrl, testUrl, type TestResult } from '../UrlTestBadge';
 
 interface Props {
   form: FormState;
@@ -20,7 +21,6 @@ function schemeLabel(url: string): string {
   return known ? known.label : url;
 }
 
-const schemeUrlValid = (url: string) => !url || /^https?:\/\/.+/.test(url);
 
 function pidValueError(schemeUrl: string, value: string): string | null {
   if (!value) return null;
@@ -42,23 +42,11 @@ function pidValueError(schemeUrl: string, value: string): string | null {
   return null;
 }
 
-type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
-
-function TestBadge({ status, code }: { status: TestStatus; code?: number }) {
-  if (status === 'loading') return <span className="inline-flex items-center gap-1 text-xs text-gray-500"><Loader2 size={12} className="animate-spin" /> Testing…</span>;
-  if (status === 'ok') return <span className="inline-flex items-center gap-1 text-xs text-green-700"><CheckCircle size={12} /> OK {code && `(${code})`}</span>;
-  if (status === 'redirect') return <span className="inline-flex items-center gap-1 text-xs text-amber-600"><AlertCircle size={12} /> Redirect {code && `(${code})`}</span>;
-  if (status === 'error') return <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle size={12} /> Error {code && `(${code})`}</span>;
-  if (status === 'failed') return <span className="inline-flex items-center gap-1 text-xs text-red-600"><XCircle size={12} /> Could not connect</span>;
-  return null;
-}
-
 export function OptionalSection({ form, update }: Props) {
   const [keyword, setKeyword] = useState('');
   const [pidSchemeUrl, setPidSchemeUrl] = useState('');
   const [pidValue, setPidValue] = useState('');
-  const [testStatus, setTestStatus] = useState<TestStatus>('idle');
-  const [testCode, setTestCode] = useState<number | undefined>();
+  const [schemeTest, setSchemeTest] = useState<TestResult>({ status: 'idle' });
 
   const addKeyword = () => {
     const kw = keyword.trim();
@@ -75,34 +63,24 @@ export function OptionalSection({ form, update }: Props) {
   };
 
   const valueError = pidValueError(pidSchemeUrl, pidValue);
-  const canAdd = pidSchemeUrl.trim() && schemeUrlValid(pidSchemeUrl) && pidValue.trim() && !valueError;
+  const canAdd = pidSchemeUrl.trim() && isValidHttpUrl(pidSchemeUrl) && pidValue.trim() && !valueError;
 
   const addPid = () => {
     if (!canAdd) return;
     const newId: ExternalId = { scheme: pidSchemeUrl.trim(), value: pidValue.trim() };
     update('externalIds', [...form.externalIds, newId]);
     setPidValue('');
-    setTestStatus('idle');
+    setSchemeTest({ status: 'idle' });
   };
 
   const testSchemeUrl = async () => {
-    if (!pidSchemeUrl || !schemeUrlValid(pidSchemeUrl)) return;
-    setTestStatus('loading');
-    setTestCode(undefined);
-    try {
-      const res = await fetch(pidSchemeUrl, { method: 'HEAD' });
-      const code = res.status;
-      setTestCode(code);
-      setTestStatus(code < 300 ? 'ok' : code < 400 ? 'redirect' : 'error');
-    } catch {
-      setTestStatus('failed');
-    }
+    setSchemeTest({ status: 'loading' });
+    setSchemeTest(await testUrl(pidSchemeUrl));
   };
 
   const handleSchemeChange = (url: string) => {
     setPidSchemeUrl(url);
-    setTestStatus('idle');
-    setTestCode(undefined);
+    setSchemeTest({ status: 'idle' });
   };
 
   return (
@@ -199,7 +177,7 @@ export function OptionalSection({ form, update }: Props) {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="text-xs font-medium text-gray-600">Scheme URL</label>
-                {schemeUrlValid(pidSchemeUrl) && pidSchemeUrl && (
+                {isValidHttpUrl(pidSchemeUrl) && pidSchemeUrl && (
                   <a
                     href={pidSchemeUrl}
                     target="_blank"
@@ -233,7 +211,7 @@ export function OptionalSection({ form, update }: Props) {
                   onChange={e => handleSchemeChange(e.target.value)}
                   placeholder="https://doi.org"
                   className={`flex-1 border rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 ${
-                    pidSchemeUrl && !schemeUrlValid(pidSchemeUrl)
+                    pidSchemeUrl && !isValidHttpUrl(pidSchemeUrl)
                       ? 'border-red-400 bg-red-50 focus:ring-red-400'
                       : 'border-gray-300 focus:ring-blue-500'
                   }`}
@@ -241,19 +219,19 @@ export function OptionalSection({ form, update }: Props) {
                 <button
                   type="button"
                   onClick={testSchemeUrl}
-                  disabled={!pidSchemeUrl || !schemeUrlValid(pidSchemeUrl) || testStatus === 'loading'}
+                  disabled={!isHttpUrl(pidSchemeUrl) || schemeTest.status === 'loading'}
                   className="px-2.5 py-1.5 text-xs rounded border border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
                 >
                   Test
                 </button>
               </div>
-              {pidSchemeUrl && !schemeUrlValid(pidSchemeUrl) && (
+              {pidSchemeUrl && !isValidHttpUrl(pidSchemeUrl) && (
                 <p className="text-xs text-red-600 mt-1">Scheme URL must be a valid http:// or https:// URL.</p>
               )}
-              {testStatus !== 'idle' && (
+              {schemeTest.status !== 'idle' && (
                 <div className="mt-1">
-                  <TestBadge status={testStatus} code={testCode} />
-                  {testStatus === 'failed' && (
+                  <TestBadge status={schemeTest.status} code={schemeTest.code} />
+                  {schemeTest.status === 'failed' && (
                     <span className="text-xs text-gray-400 ml-1">— the server may not allow browser requests (CORS)</span>
                   )}
                 </div>

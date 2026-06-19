@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { Plus, Trash2, Loader2, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { WcmpLink } from '../../types/wcmp2';
 import { LINK_RELATIONS, MIME_TYPES } from '../../utils/vocabularies';
 import { SectionWrapper } from './SectionWrapper';
+import { TestBadge, isHttpUrl, isValidUrl, testUrl, type TestResult } from '../UrlTestBadge';
 
 interface VocabItem { id: string; title: string }
 
@@ -142,50 +143,8 @@ function mqttChannelError(v: string): string | null {
   return null;
 }
 
-type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
-interface TestResult { status: TestStatus; code?: number }
-
 function emptyLink(): WcmpLink {
   return { rel: '', href: '', type: '', title: '' };
-}
-
-function TestBadge({ result }: { result: TestResult }) {
-  if (result.status === 'loading') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-gray-500">
-        <Loader2 size={12} className="animate-spin" /> Testing…
-      </span>
-    );
-  }
-  if (result.status === 'ok') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-green-700">
-        <CheckCircle size={12} /> OK {result.code && `(${result.code})`}
-      </span>
-    );
-  }
-  if (result.status === 'redirect') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-amber-600">
-        <AlertCircle size={12} /> Redirect {result.code && `(${result.code})`}
-      </span>
-    );
-  }
-  if (result.status === 'error') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-red-600">
-        <XCircle size={12} /> Error {result.code && `(${result.code})`}
-      </span>
-    );
-  }
-  if (result.status === 'failed') {
-    return (
-      <span className="inline-flex items-center gap-1 text-xs text-red-600">
-        <XCircle size={12} /> Could not connect
-      </span>
-    );
-  }
-  return null;
 }
 
 export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: Props) {
@@ -214,14 +173,8 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
   const testLink = async (href: string, index: number) => {
     if (!href) return;
     setTestResults(prev => ({ ...prev, [index]: { status: 'loading' } }));
-    try {
-      const res = await fetch(href, { method: 'HEAD' });
-      const code = res.status;
-      const status: TestStatus = code < 300 ? 'ok' : code < 400 ? 'redirect' : 'error';
-      setTestResults(prev => ({ ...prev, [index]: { status, code } }));
-    } catch {
-      setTestResults(prev => ({ ...prev, [index]: { status: 'failed' } }));
-    }
+    const result = await testUrl(href);
+    setTestResults(prev => ({ ...prev, [index]: result }));
   };
 
   return (
@@ -281,15 +234,22 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
                   URL <span className="text-red-500">*</span>
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   value={link.href}
                   onChange={e => updateLink(i, 'href', e.target.value)}
                   placeholder="https://…"
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                    !isValidUrl(link.href)
+                      ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
                 />
+                {!isValidUrl(link.href) && (
+                  <p className="text-xs text-red-600 mt-1">Enter a valid URL including the protocol (e.g. https://example.org).</p>
+                )}
                 {testResults[i] && testResults[i].status !== 'idle' && (
                   <div className="mt-1">
-                    <TestBadge result={testResults[i]} />
+                    <TestBadge status={testResults[i].status} code={testResults[i].code} />
                     {testResults[i].status === 'failed' && (
                       <span className="text-xs text-gray-400 ml-1">
                         — the server may not allow browser requests (CORS)
@@ -298,7 +258,7 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
                   </div>
                 )}
               </div>
-              {/^https?:\/\//i.test(link.href) && (
+              {isHttpUrl(link.href) && (
                 <button
                   type="button"
                   onClick={() => testLink(link.href, i)}
