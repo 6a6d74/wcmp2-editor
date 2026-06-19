@@ -37,12 +37,14 @@ function ContactCard({
   onChange,
   onRemove,
   roles,
+  duplicateIdentifier,
 }: {
   contact: Contact;
   index: number;
   onChange: (c: Contact) => void;
   onRemove: () => void;
   roles: string[];
+  duplicateIdentifier: boolean;
 }) {
   const [open, setOpen] = useState(true);
 
@@ -232,13 +234,22 @@ function ContactCard({
                 Identifier
               </label>
               {contact.identifier !== undefined && (
-                <input
-                  type="text"
-                  value={contact.identifier}
-                  onChange={e => up('identifier', e.target.value)}
-                  placeholder="Unique identifier for this contact"
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <>
+                  <input
+                    type="text"
+                    value={contact.identifier}
+                    onChange={e => up('identifier', e.target.value)}
+                    placeholder="Unique identifier for this contact"
+                    className={`w-full border rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                      duplicateIdentifier && contact.identifier
+                        ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                        : 'border-gray-300 focus:ring-blue-500'
+                    }`}
+                  />
+                  {duplicateIdentifier && contact.identifier && (
+                    <p className="text-xs text-red-600 mt-1">This identifier is already used by another contact.</p>
+                  )}
+                </>
               )}
             </div>
             <div>
@@ -374,6 +385,11 @@ export function ContactsSection({ form, update, contactRoles = CONTACT_ROLES }: 
   const contactLabel = (c: Contact, i: number) =>
     c.organization || c.name || `Contact ${i + 1}`;
 
+  const usedIdentifiers = form.contacts.map(c => c.identifier).filter(Boolean) as string[];
+  const duplicateIdentifierSet = new Set(
+    usedIdentifiers.filter((id, i) => usedIdentifiers.indexOf(id) !== i)
+  );
+
   return (
     <SectionWrapper id="contacts" title="Contacts" required>
       <p className="text-sm text-gray-500 mb-4">
@@ -389,6 +405,7 @@ export function ContactsSection({ form, update, contactRoles = CONTACT_ROLES }: 
             onChange={updated => updateContact(i, updated)}
             onRemove={() => removeContact(i)}
             roles={contactRoles}
+            duplicateIdentifier={!!(c.identifier && duplicateIdentifierSet.has(c.identifier))}
           />
         ))}
       </div>
