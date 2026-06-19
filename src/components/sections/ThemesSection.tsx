@@ -14,11 +14,11 @@ interface Props {
 
 const EXTRA_SCHEMES = [
   {
-    url: 'http://codes.wmo.int/grib2/codeflag/4.2',
+    url: 'https://codes.wmo.int/grib2/codeflag/4.2',
     label: 'GRIB2 Parameters',
   },
   {
-    url: 'http://codes.wmo.int/bufr4/b',
+    url: 'https://codes.wmo.int/bufr4/b',
     label: 'BUFR4 Elements',
   },
   {
