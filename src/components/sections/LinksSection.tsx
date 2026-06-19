@@ -133,6 +133,15 @@ function RelationCombobox({ value, onChange, options }: {
   );
 }
 
+function mqttChannelError(v: string): string | null {
+  if (!v) return null;
+  if (v.startsWith('$')) return "Channel name must not start with '$' (reserved for system topics).";
+  if (v.includes('+') || v.includes('#')) return "Channel name must not contain wildcard characters ('+' or '#').";
+  if (/\u0000/.test(v)) return "Channel name must not contain null characters.";
+  if (v.length > 65535) return "Channel name must not exceed 65,535 characters.";
+  return null;
+}
+
 type TestStatus = 'idle' | 'loading' | 'ok' | 'redirect' | 'error' | 'failed';
 interface TestResult { status: TestStatus; code?: number }
 
@@ -318,8 +327,15 @@ export function LinksSection({ form, update, linkRelations = LINK_RELATIONS }: P
                   value={link.channel || ''}
                   onChange={e => updateLink(i, 'channel', e.target.value)}
                   placeholder="origin/a/wis2/…"
-                  className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={`w-full border rounded px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                    mqttChannelError(link.channel || '')
+                      ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                      : 'border-gray-300 focus:ring-blue-500'
+                  }`}
                 />
+                {mqttChannelError(link.channel || '') && (
+                  <p className="text-xs text-red-600 mt-1">{mqttChannelError(link.channel || '')}</p>
+                )}
               </div>
             )}
           </div>
