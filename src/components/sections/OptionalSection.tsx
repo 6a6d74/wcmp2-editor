@@ -32,12 +32,12 @@ function pidValueError(schemeUrl: string, value: string): string | null {
   if (schemeUrl === 'https://arks.org') {
     return /^ark:\/?[0-9]{5}\/[A-Za-z0-9]+(\/[A-Za-z0-9]+)*(\.[A-Za-z0-9]+)*$/.test(value)
       ? null
-      : 'Invalid ARK — expected format: ark:/NNNNN/name (e.g. ark:/12345/abc123).';
+      : 'Invalid ARK — expected format: ark:/NNNNN/name (e.g. ark:/86071/d2xb84).';
   }
   if (schemeUrl === 'https://handle.net') {
     return /^[^/]+\/[^/]+$/.test(value)
       ? null
-      : 'Invalid handle — expected format: prefix/suffix (e.g. 20.1000/123).';
+      : 'Invalid handle — expected format: prefix/suffix (e.g. hdl:1912/27242).';
   }
   return null;
 }
