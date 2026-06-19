@@ -5,6 +5,7 @@ import type { Contact } from '../../types/wcmp2';
 import { CONTACT_ROLES } from '../../utils/vocabularies';
 import { CountryPicker } from '../CountryPicker';
 import { SectionWrapper } from './SectionWrapper';
+import { LinkRow, emptyLink } from '../LinkEditor';
 
 interface Props {
   form: FormState;
@@ -341,6 +342,34 @@ function ContactCard({
                 );
               })}
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-600 mb-2 block">Links</label>
+            <div className="space-y-2">
+              {(contact.links || []).map((link, li) => (
+                <LinkRow
+                  key={li}
+                  link={link}
+                  onChange={updated => {
+                    const next = [...(contact.links || [])];
+                    next[li] = updated;
+                    up('links', next);
+                  }}
+                  onRemove={() => {
+                    const next = (contact.links || []).filter((_, idx) => idx !== li);
+                    up('links', next.length > 0 ? next : undefined);
+                  }}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => up('links', [...(contact.links || []), emptyLink()])}
+              className="mt-2 flex items-center gap-1.5 px-3 py-1.5 border border-dashed border-gray-300 rounded-md text-xs text-gray-500 hover:border-blue-400 hover:text-blue-600 transition-colors w-full justify-center"
+            >
+              <Plus size={12} /> Add link
+            </button>
           </div>
         </div>
       )}
