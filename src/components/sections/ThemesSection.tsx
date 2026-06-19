@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Search, Pencil } from 'lucide-react';
-import { TestBadge, isHttpUrl, isValidHttpUrl, testUrl, type TestResult } from '../UrlTestBadge';
+import { isValidHttpUrl } from '../UrlTestBadge';
 import type { FormState } from '../../hooks/useWcmp2Form';
 import type { Theme } from '../../types/wcmp2';
 import { EARTH_SYSTEM_DISCIPLINE_SCHEME } from '../../utils/vocabularies';
@@ -32,16 +32,8 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
   const [customScheme, setCustomScheme] = useState('');
   const [customConceptId, setCustomConceptId] = useState('');
   const [customConceptTitle, setCustomConceptTitle] = useState('');
-  const [schemeTest, setSchemeTest] = useState<TestResult>({ status: 'idle' });
-
   const handleSchemeChange = (url: string) => {
     setCustomScheme(url);
-    setSchemeTest({ status: 'idle' });
-  };
-
-  const testScheme = async () => {
-    setSchemeTest({ status: 'loading' });
-    setSchemeTest(await testUrl(customScheme));
   };
 
   const filtered = disciplines.filter(
@@ -286,37 +278,19 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
                 </button>
               ))}
             </div>
-            <div className="flex gap-2 items-center">
-              <input
-                type="text"
-                value={customScheme}
-                onChange={e => handleSchemeChange(e.target.value)}
-                placeholder="https://codes.wmo.int/…"
-                className={`flex-1 border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 ${
-                  customScheme && !isValidHttpUrl(customScheme)
-                    ? 'border-red-400 bg-red-50 focus:ring-red-400'
-                    : 'border-gray-300 focus:ring-blue-500'
-                }`}
-              />
-              <button
-                type="button"
-                onClick={testScheme}
-                disabled={!isHttpUrl(customScheme) || schemeTest.status === 'loading'}
-                className="px-2.5 py-1.5 text-xs rounded border border-gray-300 bg-white text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                Test
-              </button>
-            </div>
+            <input
+              type="text"
+              value={customScheme}
+              onChange={e => handleSchemeChange(e.target.value)}
+              placeholder="https://codes.wmo.int/…"
+              className={`w-full border rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-2 ${
+                customScheme && !isValidHttpUrl(customScheme)
+                  ? 'border-red-400 bg-red-50 focus:ring-red-400'
+                  : 'border-gray-300 focus:ring-blue-500'
+              }`}
+            />
             {customScheme && !isValidHttpUrl(customScheme) && (
               <p className="text-xs text-red-600 mt-1">Scheme URL must be a valid http:// or https:// URL.</p>
-            )}
-            {schemeTest.status !== 'idle' && (
-              <div className="mt-1">
-                <TestBadge status={schemeTest.status} code={schemeTest.code} />
-                {schemeTest.status === 'failed' && (
-                  <span className="text-xs text-gray-400 ml-1">— the server may not allow browser requests (CORS)</span>
-                )}
-              </div>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
