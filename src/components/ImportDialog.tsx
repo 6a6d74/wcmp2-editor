@@ -9,7 +9,7 @@ interface Props {
 }
 
 type Tab = 'file' | 'url';
-type Status = 'idle' | 'loading' | 'success' | 'error';
+type Status = 'idle' | 'loading' | 'success' | 'warning' | 'error';
 
 export function ImportDialog({ onImport, onClose }: Props) {
   const [tab, setTab] = useState<Tab>('file');
@@ -29,13 +29,18 @@ export function ImportDialog({ onImport, onClose }: Props) {
 
   async function processJson(raw: unknown) {
     const { form, errors: errs } = validateAndParse(raw);
-    if (errs.length > 0) {
+    if (form) {
+      setParsedForm(form);
+      setRecordTitle(form.title || form.id || 'Untitled record');
+      if (errs.length > 0) {
+        setErrors(errs);
+        setStatus('warning');
+      } else {
+        setStatus('success');
+      }
+    } else {
       setErrors(errs);
       setStatus('error');
-    } else {
-      setParsedForm(form!);
-      setRecordTitle(form!.title || form!.id || 'Untitled record');
-      setStatus('success');
     }
   }
 
@@ -197,6 +202,22 @@ export function ImportDialog({ onImport, onClose }: Props) {
             </div>
           )}
 
+          {status === 'warning' && parsedForm && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
+              <div className="flex items-start gap-2 mb-1">
+                <AlertCircle size={16} className="text-amber-600 mt-0.5 shrink-0" />
+                <p className="text-sm font-medium text-amber-800">
+                  Record has {errors.length === 1 ? '1 validation issue' : `${errors.length} validation issues`} — you can still import it
+                </p>
+              </div>
+              <ul className="mt-1.5 space-y-1 pl-5 list-disc">
+                {errors.map((e, i) => (
+                  <li key={i} className="text-xs text-amber-700">{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {status === 'error' && errors.length > 0 && (
             <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3">
               <div className="flex items-start gap-2 mb-1">
@@ -224,7 +245,7 @@ export function ImportDialog({ onImport, onClose }: Props) {
           </button>
           <button
             onClick={() => parsedForm && onImport(parsedForm, recordTitle)}
-            disabled={status !== 'success' || !parsedForm}
+            disabled={!parsedForm}
             className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium transition-colors"
           >
             Load into editor

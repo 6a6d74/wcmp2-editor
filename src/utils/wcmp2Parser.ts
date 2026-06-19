@@ -77,10 +77,6 @@ export function validateAndParse(raw: unknown): ParseResult {
     errors.push('"links" must contain at least one link.');
   }
 
-  if (errors.length > 0) {
-    return { form: null, errors };
-  }
-
   // ── Parse ID into centreId + localId ──────────────────────────────────────
   const id = str(rec['id']);
   let centreId = '';
@@ -150,7 +146,7 @@ export function validateAndParse(raw: unknown): ParseResult {
     timeEnd,
     temporalResolution,
     contacts: arr(props['contacts']),
-    dataPolicy: policy as 'core' | 'recommended',
+    dataPolicy: (policy === 'core' || policy === 'recommended') ? policy : 'core',
     links: arr(rec['links']),
     keywords: arr<string>(props['keywords']),
     version: str(props['version']),
@@ -165,5 +161,5 @@ export function validateAndParse(raw: unknown): ParseResult {
     additionalSpatialExtentsJson,
   };
 
-  return { form, errors: [] };
+  return { form, errors };
 }
