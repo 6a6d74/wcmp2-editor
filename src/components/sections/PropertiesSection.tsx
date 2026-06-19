@@ -211,6 +211,11 @@ export function PropertiesSection({ form, update, resourceTypes = RESOURCE_TYPES
                   {form.status.url && !isValidHttpUrl(form.status.url) && (
                     <p className="text-xs text-red-600 mt-1">URL must be a valid http:// or https:// URL.</p>
                   )}
+                  {form.status.url?.startsWith('https://codes.wmo.int/wis/operational-status') && (
+                    <p className="text-xs text-blue-600 mt-1">
+                      The Operational Status code list is awaiting publication to the WMO Codes Registry — URLs do not yet resolve.
+                    </p>
+                  )}
                   {statusUrlTest.status !== 'idle' && (
                     <div className="mt-1">
                       <TestBadge status={statusUrlTest.status} code={statusUrlTest.code} />
