@@ -28,6 +28,16 @@ A single-page web application for creating, editing, and publishing metadata rec
 - **JSON export** — download the finished record as a standards-compliant GeoJSON Feature file
 - **Push to GitHub** — authenticate with a Personal Access Token, choose a repository and directory, and open a pull request directly from the editor (see [GitHub integration](#github-integration) below)
 
+## Limitations
+
+The following WCMP2 features are not currently supported by the editor and must be added manually to the exported JSON if required:
+
+| Feature | Specification |
+|---|---|
+| [Templated links](https://wmo-im.github.io/wcmp2/standard/wcmp2-STABLE.html#_1_19_2_templated_links) | Links with URL templates (e.g. OGC API tiles/maps endpoints with variable parameters) |
+| [Distribution information](https://wmo-im.github.io/wcmp2/standard/wcmp2-STABLE.html#_1_19_3_distribution_information) | `properties.distributions` — structured descriptions of data formats and access methods |
+| [Client-side filters](https://wmo-im.github.io/wcmp2/standard/wcmp2-STABLE.html#_1_19_6_client_side_filters) | `properties.clientSideFilters` — filter expressions for subsetting data on retrieval |
+
 ## WCMP2 Overview
 
 WCMP2 records are [GeoJSON Features](https://datatracker.ietf.org/doc/html/rfc7946) with a defined set of properties. Every record must include:
