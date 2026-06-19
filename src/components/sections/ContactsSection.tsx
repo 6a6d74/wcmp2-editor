@@ -368,7 +368,17 @@ export function ContactsSection({ form, update, contactRoles = CONTACT_ROLES }: 
   const addContact = () => setContacts([...form.contacts, emptyContact()]);
 
   const cloneContact = (i: number) => {
-    setContacts([...form.contacts, { ...form.contacts[i] }]);
+    const src = form.contacts[i];
+    const clone = { ...src };
+    if (clone.identifier) {
+      const usedIds = new Set(form.contacts.map(c => c.identifier).filter(Boolean));
+      const base = `${clone.identifier}-copy`;
+      let candidate = base;
+      let n = 2;
+      while (usedIds.has(candidate)) candidate = `${base}-${n++}`;
+      clone.identifier = candidate;
+    }
+    setContacts([...form.contacts, clone]);
     setCloneOpen(false);
   };
 
