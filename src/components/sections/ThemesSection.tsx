@@ -24,6 +24,7 @@ const EXTRA_SCHEMES = [
   {
     url: 'https://vocab.nerc.ac.uk/standard_name',
     label: 'CF Standard Names',
+    trailingSlash: true,
   },
 ];
 
@@ -75,10 +76,11 @@ export function ThemesSection({ form, update, disciplines = [] }: Props) {
     if (!trimmedId) return;
     const encodedId = trimmedId.split('/').map(encodeURIComponent).join('/');
     const existingIdx = form.themes.findIndex(t => t.scheme === customScheme);
+    const schemeConfig = EXTRA_SCHEMES.find(s => s.url === customScheme);
     const newConcept = {
       id: trimmedId,
       title: customConceptTitle || undefined,
-      url: `${customScheme}/${encodedId}`,
+      url: `${customScheme}/${encodedId}${schemeConfig?.trailingSlash ? '/' : ''}`,
     };
     const newThemes = [...form.themes];
     if (existingIdx >= 0) {
