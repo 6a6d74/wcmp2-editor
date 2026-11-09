@@ -20,6 +20,17 @@ const BULLETIN_HEADER = /^[A-Z]{4}\d{2}[A-Z]{4}/;
 const HTML_TAG = /<[^>]+>/;
 const ACRONYM = /\b[A-Z]{2,}\b/g;
 
+// Mirrors web_image_mime_types in pywcmp's kpi_graphic_overview (pywcmp/wcmp2/kpi.py)
+export const WEB_IMAGE_MIME_TYPES = [
+  'image/apng',
+  'image/avif',
+  'image/gif',
+  'image/jpeg',
+  'image/png',
+  'image/svg+xml',
+  'image/webp',
+];
+
 function gradeFromPct(pct: number): KpiSummary['grade'] {
   if (pct >= 80) return 'A';
   if (pct >= 65) return 'B';
@@ -136,10 +147,9 @@ function scoreGraphicOverview(form: FormState): KpiResult {
 
   score++; // preview link exists
 
-  const validImageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
   const firstPreview = previewLinks[0];
-  if (firstPreview.type && validImageTypes.includes(firstPreview.type)) score++;
-  else hints.push('Preview link should have a valid image MIME type (image/png, image/jpeg, etc.)');
+  if (firstPreview.type && WEB_IMAGE_MIME_TYPES.includes(firstPreview.type)) score++;
+  else hints.push(`Preview link should have a web image MIME type (${WEB_IMAGE_MIME_TYPES.join(', ')})`);
 
   if (firstPreview.href && /^https?:\/\//.test(firstPreview.href)) score++;
   else hints.push('Preview URL should be a valid HTTP(S) URL');

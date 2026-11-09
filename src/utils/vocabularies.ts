@@ -180,6 +180,7 @@ export const MIME_TYPES = [
   'image/gif',
   'image/jpeg',
   'image/png',
+  'image/svg+xml',
   'image/tiff',
   'image/webp',
   'text/csv',
