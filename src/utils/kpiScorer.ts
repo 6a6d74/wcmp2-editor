@@ -134,25 +134,29 @@ function scoreTimeIntervals(form: FormState): KpiResult {
   return { id: 'time', name: 'Good quality time intervals', score, maxScore: max, hints };
 }
 
+// Mirrors pywcmp: each preview link is worth 3 points; with no preview links
+// the KPI scores 0/0 and so does not affect the overall percentage.
 function scoreGraphicOverview(form: FormState): KpiResult {
   const hints: string[] = [];
   let score = 0;
-  const max = 3;
 
   const previewLinks = form.links.filter(l => l.rel === 'preview');
+  const max = previewLinks.length * 3;
   if (previewLinks.length === 0) {
-    hints.push('Add a "preview" link with a thumbnail image to improve KPI score');
+    hints.push('Optionally add a "preview" link with a thumbnail image (not scored until one is added)');
     return { id: 'graphic', name: 'Graphic overview', score, maxScore: max, hints };
   }
 
-  score++; // preview link exists
+  for (const link of previewLinks) {
+    score++; // preview link exists
+    const label = link.href || '(no URL)';
 
-  const firstPreview = previewLinks[0];
-  if (firstPreview.type && WEB_IMAGE_MIME_TYPES.includes(firstPreview.type)) score++;
-  else hints.push(`Preview link should have a web image MIME type (${WEB_IMAGE_MIME_TYPES.join(', ')})`);
+    if (link.type && WEB_IMAGE_MIME_TYPES.includes(link.type)) score++;
+    else hints.push(`Preview link "${label}" should have a web image MIME type (${WEB_IMAGE_MIME_TYPES.join(', ')})`);
 
-  if (firstPreview.href && /^https?:\/\//.test(firstPreview.href)) score++;
-  else hints.push('Preview URL should be a valid HTTP(S) URL');
+    if (link.href && /^https?:\/\//.test(link.href)) score++;
+    else hints.push(`Preview link "${label}" should have a valid HTTP(S) URL`);
+  }
 
   return { id: 'graphic', name: 'Graphic overview', score, maxScore: max, hints };
 }
