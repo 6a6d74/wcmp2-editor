@@ -211,21 +211,34 @@ function scoreContacts(form: FormState): KpiResult {
   return { id: 'contacts', name: 'Contacts', score, maxScore: max, hints };
 }
 
+// pywcmp only credits the literal schemes 'doi' / 'ark' / 'hdl', but the WCMP2
+// schema recommends a resolvable URI (the editor writes e.g. https://doi.org),
+// so accept both forms.
+const PID_SCHEME_WORDS = ['doi', 'ark', 'hdl'];
+const PID_SCHEME_HOSTS = ['doi.org', 'dx.doi.org', 'arks.org', 'n2t.net', 'handle.net', 'hdl.handle.net'];
+
+export function isDoiArkHdlScheme(scheme: string): boolean {
+  const s = scheme.trim().toLowerCase();
+  if (PID_SCHEME_WORDS.includes(s)) return true;
+  const host = s.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+  return /^https?:\/\//.test(s) && PID_SCHEME_HOSTS.includes(host);
+}
+
+// Mirrors pywcmp: with no externalIds the KPI scores 0/0 and so does not
+// affect the overall percentage.
 function scorePids(form: FormState): KpiResult {
   const hints: string[] = [];
   let score = 0;
-  const max = 3;
 
-  if (form.externalIds.length > 0) {
-    score++;
-    const hasDoi = form.externalIds.some(e =>
-      ['doi', 'ark', 'hdl'].includes(e.scheme.toLowerCase())
-    );
-    if (hasDoi) score++;
-    else hints.push('Include a DOI, ARK, or HDL persistent identifier');
-  } else {
-    hints.push('Add external identifiers (e.g. DOI) to improve citability');
+  if (form.externalIds.length === 0) {
+    hints.push('Optionally add external identifiers (e.g. DOI) to improve citability (not scored until one is added)');
+    return { id: 'pids', name: 'Persistent identifiers', score, maxScore: 0, hints };
   }
+
+  const max = 3;
+  score++;
+  if (form.externalIds.some(e => isDoiArkHdlScheme(e.scheme))) score++;
+  else hints.push('Include a DOI, ARK, or HDL persistent identifier');
 
   const hasCiteAs = form.links.some(l => l.rel === 'cite-as');
   if (hasCiteAs) score++;

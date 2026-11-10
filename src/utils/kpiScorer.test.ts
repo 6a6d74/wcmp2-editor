@@ -63,3 +63,56 @@ describe('graphic overview KPI', () => {
     expect(r.hints).toHaveLength(2);
   });
 });
+
+function pids(externalIds: { scheme: string; value: string }[], links: Partial<WcmpLink>[] = []) {
+  const form = { ...formWithLinks(links), externalIds } as FormState;
+  return scoreRecord(form).results.find(r => r.id === 'pids')!;
+}
+
+describe('persistent identifiers KPI', () => {
+  it.each([
+    'https://doi.org',
+    'https://arks.org',
+    'https://handle.net',
+    'https://doi.org/',
+    'http://dx.doi.org',
+    'doi',
+    'ark',
+    'hdl',
+  ])('credits %s as a DOI/ARK/HDL scheme', scheme => {
+    const r = pids([{ scheme, value: '10.5065/D6FB50WB' }]);
+    expect(r.score).toBe(2);
+    expect(r.hints).not.toContain('Include a DOI, ARK, or HDL persistent identifier');
+  });
+
+  it('credits DOI, ARK and HDL together as written by the editor', () => {
+    const r = pids([
+      { scheme: 'https://doi.org', value: '10.5065/D6FB50WB' },
+      { scheme: 'https://arks.org', value: 'ark:/86071/d2xb84' },
+      { scheme: 'https://handle.net', value: '1912/27242' },
+    ]);
+    expect(r.score).toBe(2);
+    expect(r.hints).not.toContain('Include a DOI, ARK, or HDL persistent identifier');
+  });
+
+  it.each(['https://example.org', 'https://doi.org.evil.com', 'isbn'])('does not credit %s', scheme => {
+    const r = pids([{ scheme, value: 'x' }]);
+    expect(r.score).toBe(1);
+    expect(r.hints).toContain('Include a DOI, ARK, or HDL persistent identifier');
+  });
+
+  it('scores 3/3 with a DOI and a cite-as link', () => {
+    const r = pids([{ scheme: 'https://doi.org', value: '10.5065/D6FB50WB' }], [
+      { rel: 'cite-as', href: 'https://doi.org/10.5065/D6FB50WB', type: 'text/html' },
+    ]);
+    expect(r.score).toBe(3);
+    expect(r.maxScore).toBe(3);
+    expect(r.hints).toEqual([]);
+  });
+
+  it('scores 0/0 when there are no external identifiers (as pywcmp does)', () => {
+    const r = pids([]);
+    expect(r.score).toBe(0);
+    expect(r.maxScore).toBe(0);
+  });
+});
